@@ -1,0 +1,370 @@
+# GENERATED FILE — do not edit. Source of truth: openspec-custom-schemas/src/
+# Rebuild: node src/build.mjs   |   Variant: tdd-parallel (mode=parallel, worktree=false)
+name: tdd-parallel
+version: 1
+description: |
+  TDD-disciplined workflow with batch-parallel subagent dispatch.
+  Inlines a parallel-agent dispatch discipline: sequential batches,
+  parallel Implementer subagents within each batch, batch-end integration
+  verification (no per-task reviewer roles, by design). No worktree isolation.
+
+  Inlined disciplines (self-contained; no external plugin required):
+    - Test-first commitment via test-plan.md
+    - RED -> GREEN enforcement inside each Implementer subagent
+    - Independence proof per batch (disjoint files; parallel-safe)
+    - Batch-end integration verification (summaries + full suite + spot check)
+    - Per-implementer model assignment recorded in execution-plan.md
+    - Final reviewer pass over all batches when apply completes
+    - Sized ASCII overview (incl. UI mockups for frontend work)
+
+  Output language is controlled by openspec/config.yaml `context:`
+  (see OpenSpec docs/multi-language.md), not by this schema.
+
+artifacts:
+  - id: proposal
+    generates: proposal.md
+    description: Why this change exists (Why / What / Capabilities / Impact)
+    template: proposal.md
+    instruction: |
+      Create proposal.md that establishes WHY this change is needed.
+
+      Sections (in order):
+      - **Why**: 1-2 sentences on the problem or opportunity. Why now?
+      - **What Changes**: Bullet list of concrete changes. Mark breaking changes with **BREAKING**.
+      - **Capabilities**:
+        - **New Capabilities**: List new capabilities (each maps to `specs/<name>/spec.md`).
+          Use kebab-case names (e.g., `user-auth`, `data-export`).
+        - **Modified Capabilities**: List capabilities whose REQUIREMENTS change.
+          Implementation-only changes do not belong here.
+        - Check `openspec/specs/` before naming to reuse existing capability names.
+      - **Impact**: Affected code, APIs, dependencies, teams, external systems.
+
+      The Capabilities section is the contract between proposal and specs phases.
+      Every capability listed here MUST get a corresponding spec file.
+
+      Keep it 1-2 pages. The "how" belongs in design.md, not here.
+    requires: []
+
+  - id: specs
+    generates: "specs/**/*.md"
+    description: WHAT — detailed specifications per capability
+    template: spec.md
+    instruction: |
+      Create `specs/<capability>/spec.md` for each capability listed in the proposal.
+
+      Delta operations (use ## headers exactly):
+      - **ADDED Requirements**: New requirements
+      - **MODIFIED Requirements**: MUST include the full updated content (not a diff)
+      - **REMOVED Requirements**: MUST include **Reason** and **Migration**
+      - **RENAMED Requirements**: Use FROM:/TO: format
+
+      Requirement format:
+      - `### Requirement: <name>` followed by description (use SHALL / MUST; avoid should/may)
+      - Each requirement MUST have at least one Scenario
+      - Scenario header MUST use exactly 4 hashtags (`####`). 3 hashtags or bullets fail silently.
+      - Scenario body uses WHEN / THEN form
+
+      MODIFIED workflow:
+      1. Locate the existing requirement in `openspec/specs/<capability>/spec.md`
+      2. Copy the entire block (from `### Requirement:` through all Scenarios)
+      3. Paste under `## MODIFIED Requirements` and edit to reflect new behavior
+      4. Header text must match exactly (whitespace-insensitive)
+
+      Common pitfall: Using MODIFIED with partial content loses detail at archive time.
+      If adding new concerns without changing existing behavior, use ADDED instead.
+
+      ⚠️ Do NOT embed ASCII diagrams or visualizations in spec.md.
+      All visuals belong in overview.md. spec.md must stay as pure requirement
+      language so the validator can parse it correctly.
+    requires:
+      - proposal
+
+  - id: design
+    generates: design.md
+    description: HOW — technical design and decisions
+    template: design.md
+    instruction: |
+      Create design.md to explain HOW to implement the change.
+      Include only when any of these apply:
+      - Cross-service / cross-module change or new architectural pattern
+      - New external dependency or significant data model change
+      - Security, performance, or migration complexity
+      - Ambiguity that benefits from technical decisions before coding
+
+      Sections:
+      - **Context**: Background, current state, constraints, stakeholders
+      - **Goals / Non-Goals**: What this design achieves and explicitly excludes
+      - **Decisions**: Key technical choices with rationale (why X over Y).
+        Each decision MUST list alternatives considered.
+      - **Risks / Trade-offs**: Format `[Risk] -> Mitigation`
+      - **Migration Plan**: Deployment steps and rollback strategy (if applicable)
+      - **Open Questions**: Outstanding decisions or unknowns
+
+      Focus on architecture and approach, not line-by-line implementation.
+      Reference the proposal (motivation) and specs (requirements).
+    requires:
+      - proposal
+
+  - id: test-plan
+    generates: test-plan.md
+    description: TDD pre-commitment — which tests cover each requirement, and why first
+    template: test-plan.md
+    instruction: |
+      Create test-plan.md. **This is the RED-phase commitment document.
+      Do NOT describe implementation logic here.**
+
+      For each requirement in specs:
+      - List 1-N test names in imperative form
+        (e.g., `user_can_export_csv`, `export_rejects_when_no_users_selected`)
+      - Map each test explicitly to a Scenario (####)
+      - State the expected assertion: what input -> what output / state change / error
+      - State why this test must be written first (golden path? edge case? regression guard?)
+
+      Format (one block per capability):
+      ```
+      ## <capability-name>
+
+      ### Requirement: <requirement-name>
+
+      | Test name | Scenario | Assertion | Why first | Tier |
+      |-----------|----------|-----------|-----------|------|
+      | test_x | Scenario A | input ... -> output ... | golden path | unit |
+      ```
+
+      The `Tier` column is REQUIRED for every test row (values: unit | integration | e2e).
+      Mixing unit and integration in one row is not allowed; split into separate rows.
+
+      Validation checks:
+      - Every requirement has at least one test
+      - Every Scenario has at least one test
+      - Every row has a Tier value
+
+      This file is read repeatedly during apply as the source of "what to RED next".
+    requires:
+      - specs
+
+  - id: overview
+    generates: overview.md
+    description: ASCII 人類版摘要；依 change 規模與類型動態決定區塊
+    template: overview.md
+    instruction: |
+      建立 overview.md，給人類一頁讀完此 change。
+      **所有 ASCII 圖必須包在 ``` 三引號程式碼區塊內。**
+      Apply 階段不必讀此檔；validator 也不解析它。
+
+      ─── 步驟 1：判定 change 規模（取最大命中）───
+      - **small**：影響 ≤1 capability、預估 tasks ≤8、無新依賴、無架構變更
+      - **medium**：影響 2-3 capabilities、tasks 9-20、或新增一個模組
+      - **large**：影響 ≥4 capabilities、tasks >20、或跨服務 / 含資料遷移
+
+      ─── 步驟 2：判定是否含前端需求 ───
+      只要 specs 內有任一 requirement 描述使用者介面、互動、版面、視覺狀態,
+      即視為「含前端需求」，必須加上 UI Mockups 區塊。
+
+      ─── 步驟 3：依下表組合區塊 ───
+
+      | 區塊 | small | medium | large | 條件 |
+      |------|:-----:|:------:|:-----:|------|
+      | Scope            | ✅ | ✅ | ✅ | 永遠 |
+      | What Changes     | ✅ | ✅ | ✅ | 永遠 |
+      | UI Mockups       | (條件) | (條件) | (條件) | 含前端需求時 |
+      | Architecture     | — | ✅ | ✅ | medium 起 |
+      | Task Tree        | — | — | ✅ | large 起 |
+      | Cross-Cutting Impact | — | — | ✅ | large 起 |
+
+      ─── 步驟 4：各區塊內容規範 ───
+
+      ## Scope
+        - 兩三句白話描述
+        - 規模判定結果（small / medium / large）+ 一句理由
+        - 是否含前端需求 + 一句理由
+
+      ## What Changes
+        - 條列（同 proposal 的 What Changes，但更精簡）
+        - 一個 ``` ASCII 區塊：before / after 對照（純文字、無 UI 細節）
+
+      ## UI Mockups（含前端需求時）
+        依下列繪製慣例輸出多個 state：
+
+        ─── ASCII UI 繪製慣例 ───
+        - 容器邊框：┌─┐ │ └─┘
+        - 按鈕：[Label]、[Label ▾]（含下拉）、[Cancel]（次要）
+        - Radio：( ) 未選、(●) 已選
+        - Checkbox：[ ] 未勾、[x] 已勾
+        - 輸入框：[___________] 空、[value] 有值
+        - 下拉：[value ▼]
+        - Disabled：後綴 ░░░░ 或前綴 (disabled)
+        - 互動箭頭：│ │ ▼ 表示 A 觸發 B
+        - 狀態切換：=== State N: <描述> === 標題分區
+        - 標註：行末對齊 ← 註解
+
+        必含：
+        - 至少 before 與 after 兩個 state（除非是純新增頁面）
+        - 每個關鍵互動觸發的 state（modal、disabled、error、loading）
+        - 多 state 用 === State N === 分區、用 │ ▼ 表示觸發順序
+
+      ## Architecture（medium 起）
+        - 一個 ``` ASCII 區塊：元件 / 資料流 / 依賴關係
+        - 用方塊 + 箭頭表示模組與資料流向
+
+      ## Task Tree（large 起）
+        - 一個 ``` ASCII 區塊：tasks.md 的依賴樹
+        - 用縮排或 ├── └── 表示父子關係
+
+      ## Cross-Cutting Impact（large 起）
+        - 一個 ``` 區塊或 markdown 表格：受影響檔案 / 模組矩陣
+
+      ─── 共通要求 ───
+      - 每個 ASCII 區塊前用一兩句中文說明它在表達什麼
+      - ASCII 寬度不超過 80 字元（terminal 友善）
+      - 不使用全形空格與全形括號（會破壞對齊）
+    requires:
+      - specs
+
+  - id: execution-plan
+    generates: execution-plan.md
+    description: Parallel batch plan — batches, independence proof, model assignment, failure policy
+    template: execution-plan.md
+    instruction: |
+      Create execution-plan.md to declare how Implementer subagents are
+      dispatched in parallel batches. **Do NOT add Spec Reviewer or
+      Code-Quality Reviewer sections — the parallel variant intentionally
+      omits per-task two-stage review by design.**
+
+      Sections (in order):
+      - **Mode**: must be `parallel-batches`.
+      - **Batch definition**: a table of batches with the tasks each batch
+        contains plus rationale (why those tasks belong together, why later
+        batches must wait for earlier ones). Batches run sequentially; tasks
+        within a batch run in parallel.
+      - **Independence proof**: for every batch, prove the tasks within can
+        run in parallel by listing each task's dependencies and the files
+        it touches. Compute the file intersection within the batch; it MUST
+        be empty for the batch to be parallel-safe. State the conclusion
+        explicitly per batch.
+      - **Per-implementer model assignment**: a table mapping each task to a
+        model (haiku / sonnet / opus) with a one-line reason. Upgrade rules:
+        context gap → add context, redispatch with the
+        same model; reasoning gap → upgrade model; task too large → split;
+        plan itself wrong → escalate to a human.
+      - **Failure policy**: pick one of:
+        - `abort batch`: stop the whole batch immediately; rollback already-committed parts.
+        - `continue others`: mark the failed task BLOCKED; let other tasks
+          continue; revisit at batch end.
+        - `rollback all`: revert every commit in the batch; redispatch the entire batch.
+        Default is `continue others` (matches dispatching-parallel-agents'
+        spirit — independent failures should not block independent progress).
+      - **Integration verification (batch-end)**: list the steps applied at
+        each batch's end (read summaries; conflict check; full test suite;
+        spot check 1-2 diffs).
+
+      Quality in the parallel variant is gated by TDD discipline (RED first,
+      GREEN must pass test), batch-level integration verification, and the
+      final reviewer at the end of all batches. Per-task review is by design
+      absent.
+
+      This file is read at the start of every batch during apply; keep the
+      Independence proof in sync with tasks.md.
+    requires:
+      - test-plan
+
+  - id: tasks
+    generates: tasks.md
+    description: Implementation checklist; enforces RED / GREEN / (REFACTOR) structure
+    template: tasks.md
+    instruction: |
+      Create tasks.md. **Apply parses `- [ ]` checkboxes to track progress.
+      Wrong format = no tracking.**
+
+      ─── Mandatory structure ───
+      Every implementation task MUST be preceded by a corresponding test task.
+      Naming prefix:
+      - `X.Y RED: <test name>` → write the test named in test-plan.md (must fail first)
+      - `X.Y+1 GREEN: <implementation>` → write the minimum code to pass
+      - `X.Y+2 REFACTOR: <description>` → optional
+
+      ## Grouping
+      - Group by capability or subsystem
+      - Order within group follows dependency
+      - Cross-group dependencies: state `Depends on: §N` on the line under the group header
+
+      ─── Example ───
+      ```
+      ## 1. CSV Export Core
+
+      - [ ] 1.1 RED: write test `export_returns_csv_with_headers`
+      - [ ] 1.2 GREEN: implement CsvExporter.export()
+      - [ ] 1.3 RED: write test `export_handles_unicode`
+      - [ ] 1.4 GREEN: extend CsvExporter to encode UTF-8
+      - [ ] 1.5 REFACTOR: extract header logic into helper
+
+      ## 2. UI Wiring
+      Depends on: §1
+
+      - [ ] 2.1 RED: write test `export_button_visible_on_user_list`
+      - [ ] 2.2 GREEN: add Export CSV button to UserList
+      ```
+
+      ─── Forbidden ───
+      - Two GREEN tasks without a RED between them
+      - A standalone "implement X" task with no corresponding test
+      - Mixing test + impl description in one checkbox
+    requires:
+      - specs
+      - test-plan
+      - execution-plan
+      - design
+
+apply:
+  requires: [tasks]
+  tracks: tasks.md
+  instruction: |
+    Process every unchecked checkbox in tasks.md in order.
+
+    Commit behavior assumes the agent host has git permission. If commits
+    cannot be made, the discipline degrades to in-memory steps; do not skip
+    the test-first sequencing regardless.
+
+    Read execution-plan.md for batch definitions and Independence proofs.
+    **Batches run sequentially; tasks within a batch run in parallel.**
+
+    ─── Per Batch ───
+    1. Confirm the Independence proof for this batch still holds (no file or
+       module overlap). If manual edits since the plan invalidate it, stop and
+       request replanning.
+    2. Dispatch Implementer subagents in parallel, one per (RED, GREEN) pair
+       inside the batch:
+       - Each subagent uses the model assigned in execution-plan.md
+         (can be fine-tuned per task).
+       - Each subagent receives: the full task text from tasks.md, the matching
+         entry from test-plan.md, the relevant spec / design sections,
+         and explicit RED → GREEN → commit instructions.
+    3. Wait for all subagents in the batch to report.
+    4. Integration verification (per dispatching-parallel-agents SKILL.md:78-83):
+       a. Read each subagent's summary (what was done, which files changed, why).
+       b. Conflict check: did any subagent touch a file not listed in the
+          Independence proof? If so, log and follow the Failure policy.
+       c. Run the full test suite; confirm no cross-contamination.
+       d. Spot check: pick 1-2 subagent diffs at random and review by hand to
+          catch systemic errors.
+    5. Any check fails → follow execution-plan.md's Failure policy
+       (abort batch / continue others / rollback).
+    6. All green → check off every box in the batch; proceed to the next batch.
+    7. After all batches complete → run the full test suite again and dispatch
+       a final Reviewer over the whole change.
+
+    ─── Forbidden ───
+    - Adding per-task two-stage review "for safety" (that belongs to tdd-subagent;
+      it violates the design intent of tdd-parallel)
+    - Running batches in parallel (batches must be sequential)
+    - Dispatching subagents before verifying the Independence proof
+    - Skipping batch-end integration verification and moving to the next batch
+    - Letting a subagent touch a file not listed in the Independence proof
+      without handling it
+    - Bundling an entire batch into one mega-task for a single subagent
+      (defeats the parallel value)
+
+    ─── When blocked ───
+    - Stop. Record the blocker under `## Open Questions` in design.md.
+    - Report back to the user.
+    - Do not simplify tests or skip verification to make progress.

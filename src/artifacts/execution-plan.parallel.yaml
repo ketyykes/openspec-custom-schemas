@@ -1,0 +1,47 @@
+  - id: execution-plan
+    generates: execution-plan.md
+    description: Parallel batch plan — batches, independence proof, model assignment, failure policy
+    template: execution-plan.md
+    instruction: |
+      Create execution-plan.md to declare how Implementer subagents are
+      dispatched in parallel batches. **Do NOT add Spec Reviewer or
+      Code-Quality Reviewer sections — the parallel variant intentionally
+      omits per-task two-stage review by design.**
+
+      Sections (in order):
+      - **Mode**: must be `parallel-batches`.
+      - **Batch definition**: a table of batches with the tasks each batch
+        contains plus rationale (why those tasks belong together, why later
+        batches must wait for earlier ones). Batches run sequentially; tasks
+        within a batch run in parallel.
+      - **Independence proof**: for every batch, prove the tasks within can
+        run in parallel by listing each task's dependencies and the files
+        it touches. Compute the file intersection within the batch; it MUST
+        be empty for the batch to be parallel-safe. State the conclusion
+        explicitly per batch.
+      - **Per-implementer model assignment**: a table mapping each task to a
+        model (haiku / sonnet / opus) with a one-line reason. Upgrade rules:
+        context gap → add context, redispatch with the
+        same model; reasoning gap → upgrade model; task too large → split;
+        plan itself wrong → escalate to a human.
+      - **Failure policy**: pick one of:
+        - `abort batch`: stop the whole batch immediately; rollback already-committed parts.
+        - `continue others`: mark the failed task BLOCKED; let other tasks
+          continue; revisit at batch end.
+        - `rollback all`: revert every commit in the batch; redispatch the entire batch.
+        Default is `continue others` (matches dispatching-parallel-agents'
+        spirit — independent failures should not block independent progress).
+      - **Integration verification (batch-end)**: list the steps applied at
+        each batch's end (read summaries; conflict check; full test suite;
+        spot check 1-2 diffs).
+
+      Quality in the parallel variant is gated by TDD discipline (RED first,
+      GREEN must pass test), batch-level integration verification, and the
+      final reviewer at the end of all batches. Per-task review is by design
+      absent.
+
+      This file is read at the start of every batch during apply; keep the
+      Independence proof in sync with tasks.md.
+    requires:
+      - test-plan
+

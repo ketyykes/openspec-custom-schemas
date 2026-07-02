@@ -1,0 +1,42 @@
+  - id: tasks
+    generates: tasks.md
+    description: Implementation checklist; enforces RED / GREEN / (REFACTOR) structure
+    template: tasks.md
+    instruction: |
+      Create tasks.md. **Apply parses `- [ ]` checkboxes to track progress.
+      Wrong format = no tracking.**
+
+      ─── Mandatory structure ───
+      Every implementation task MUST be preceded by a corresponding test task.
+      Naming prefix:
+      - `X.Y RED: <test name>` → write the test named in test-plan.md (must fail first)
+      - `X.Y+1 GREEN: <implementation>` → write the minimum code to pass
+      - `X.Y+2 REFACTOR: <description>` → optional
+
+      ## Grouping
+      - Group by capability or subsystem
+      - Order within group follows dependency
+      - Cross-group dependencies: state `Depends on: §N` on the line under the group header
+
+      ─── Example ───
+      ```
+      ## 1. CSV Export Core
+
+      - [ ] 1.1 RED: write test `export_returns_csv_with_headers`
+      - [ ] 1.2 GREEN: implement CsvExporter.export()
+      - [ ] 1.3 RED: write test `export_handles_unicode`
+      - [ ] 1.4 GREEN: extend CsvExporter to encode UTF-8
+      - [ ] 1.5 REFACTOR: extract header logic into helper
+
+      ## 2. UI Wiring
+      Depends on: §1
+
+      - [ ] 2.1 RED: write test `export_button_visible_on_user_list`
+      - [ ] 2.2 GREEN: add Export CSV button to UserList
+      ```
+
+      ─── Forbidden ───
+      - Two GREEN tasks without a RED between them
+      - A standalone "implement X" task with no corresponding test
+      - Mixing test + impl description in one checkbox
+    requires:

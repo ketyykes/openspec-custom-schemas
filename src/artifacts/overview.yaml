@@ -1,0 +1,78 @@
+  - id: overview
+    generates: overview.md
+    description: ASCII 人類版摘要；依 change 規模與類型動態決定區塊
+    template: overview.md
+    instruction: |
+      建立 overview.md，給人類一頁讀完此 change。
+      **所有 ASCII 圖必須包在 ``` 三引號程式碼區塊內。**
+      Apply 階段不必讀此檔；validator 也不解析它。
+
+      ─── 步驟 1：判定 change 規模（取最大命中）───
+      - **small**：影響 ≤1 capability、預估 tasks ≤8、無新依賴、無架構變更
+      - **medium**：影響 2-3 capabilities、tasks 9-20、或新增一個模組
+      - **large**：影響 ≥4 capabilities、tasks >20、或跨服務 / 含資料遷移
+
+      ─── 步驟 2：判定是否含前端需求 ───
+      只要 specs 內有任一 requirement 描述使用者介面、互動、版面、視覺狀態,
+      即視為「含前端需求」，必須加上 UI Mockups 區塊。
+
+      ─── 步驟 3：依下表組合區塊 ───
+
+      | 區塊 | small | medium | large | 條件 |
+      |------|:-----:|:------:|:-----:|------|
+      | Scope            | ✅ | ✅ | ✅ | 永遠 |
+      | What Changes     | ✅ | ✅ | ✅ | 永遠 |
+      | UI Mockups       | (條件) | (條件) | (條件) | 含前端需求時 |
+      | Architecture     | — | ✅ | ✅ | medium 起 |
+      | Task Tree        | — | — | ✅ | large 起 |
+      | Cross-Cutting Impact | — | — | ✅ | large 起 |
+
+      ─── 步驟 4：各區塊內容規範 ───
+
+      ## Scope
+        - 兩三句白話描述
+        - 規模判定結果（small / medium / large）+ 一句理由
+        - 是否含前端需求 + 一句理由
+
+      ## What Changes
+        - 條列（同 proposal 的 What Changes，但更精簡）
+        - 一個 ``` ASCII 區塊：before / after 對照（純文字、無 UI 細節）
+
+      ## UI Mockups（含前端需求時）
+        依下列繪製慣例輸出多個 state：
+
+        ─── ASCII UI 繪製慣例 ───
+        - 容器邊框：┌─┐ │ └─┘
+        - 按鈕：[Label]、[Label ▾]（含下拉）、[Cancel]（次要）
+        - Radio：( ) 未選、(●) 已選
+        - Checkbox：[ ] 未勾、[x] 已勾
+        - 輸入框：[___________] 空、[value] 有值
+        - 下拉：[value ▼]
+        - Disabled：後綴 ░░░░ 或前綴 (disabled)
+        - 互動箭頭：│ │ ▼ 表示 A 觸發 B
+        - 狀態切換：=== State N: <描述> === 標題分區
+        - 標註：行末對齊 ← 註解
+
+        必含：
+        - 至少 before 與 after 兩個 state（除非是純新增頁面）
+        - 每個關鍵互動觸發的 state（modal、disabled、error、loading）
+        - 多 state 用 === State N === 分區、用 │ ▼ 表示觸發順序
+
+      ## Architecture（medium 起）
+        - 一個 ``` ASCII 區塊：元件 / 資料流 / 依賴關係
+        - 用方塊 + 箭頭表示模組與資料流向
+
+      ## Task Tree（large 起）
+        - 一個 ``` ASCII 區塊：tasks.md 的依賴樹
+        - 用縮排或 ├── └── 表示父子關係
+
+      ## Cross-Cutting Impact（large 起）
+        - 一個 ``` 區塊或 markdown 表格：受影響檔案 / 模組矩陣
+
+      ─── 共通要求 ───
+      - 每個 ASCII 區塊前用一兩句中文說明它在表達什麼
+      - ASCII 寬度不超過 80 字元（terminal 友善）
+      - 不使用全形空格與全形括號（會破壞對齊）
+    requires:
+      - specs
+

@@ -1,0 +1,38 @@
+  - id: test-plan
+    generates: test-plan.md
+    description: TDD pre-commitment — which tests cover each requirement, and why first
+    template: test-plan.md
+    instruction: |
+      Create test-plan.md. **This is the RED-phase commitment document.
+      Do NOT describe implementation logic here.**
+
+      For each requirement in specs:
+      - List 1-N test names in imperative form
+        (e.g., `user_can_export_csv`, `export_rejects_when_no_users_selected`)
+      - Map each test explicitly to a Scenario (####)
+      - State the expected assertion: what input -> what output / state change / error
+      - State why this test must be written first (golden path? edge case? regression guard?)
+
+      Format (one block per capability):
+      ```
+      ## <capability-name>
+
+      ### Requirement: <requirement-name>
+
+      | Test name | Scenario | Assertion | Why first | Tier |
+      |-----------|----------|-----------|-----------|------|
+      | test_x | Scenario A | input ... -> output ... | golden path | unit |
+      ```
+
+      The `Tier` column is REQUIRED for every test row (values: unit | integration | e2e).
+      Mixing unit and integration in one row is not allowed; split into separate rows.
+
+      Validation checks:
+      - Every requirement has at least one test
+      - Every Scenario has at least one test
+      - Every row has a Tier value
+
+      This file is read repeatedly during apply as the source of "what to RED next".
+    requires:
+      - specs
+

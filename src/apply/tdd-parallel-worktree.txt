@@ -1,0 +1,64 @@
+    Process every unchecked checkbox in tasks.md in order.
+
+    Commit behavior assumes the agent host has git permission. If commits
+    cannot be made, the discipline degrades to in-memory steps; do not skip
+    the test-first sequencing regardless.
+
+    ─── Step 0: Worktree pre-flight check ───
+    0a. Read environment.md; obtain the worktree path and base branch.
+    0b. Verify the current cwd is inside the worktree path declared in
+        environment.md. If not, run the setup commands listed in
+        environment.md to enter the worktree.
+    0c. Run the full test suite to confirm the baseline is green.
+        If not green, stop, report, and do not start any task.
+    0d. Record the baseline commit hash into environment.md's Verification
+        section (if not already recorded).
+
+    Read execution-plan.md for batch definitions and Independence proofs.
+    **Batches run sequentially; tasks within a batch run in parallel.**
+
+    ─── Per Batch ───
+    1. Confirm the Independence proof for this batch still holds (no file or
+       module overlap). If manual edits since the plan invalidate it, stop and
+       request replanning.
+    2. Dispatch Implementer subagents in parallel, one per (RED, GREEN) pair
+       inside the batch:
+       - Each subagent uses the model assigned in execution-plan.md
+         (can be fine-tuned per task).
+       - Each subagent receives: the full task text from tasks.md, the matching
+         entry from test-plan.md, the relevant spec / design sections,
+         and explicit RED → GREEN → commit instructions.
+       - Each subagent works inside the worktree validated in Step 0; the
+         Independence proof guarantees disjoint files, so per-subagent
+         worktrees are unnecessary.
+    3. Wait for all subagents in the batch to report.
+    4. Integration verification (per dispatching-parallel-agents SKILL.md:78-83):
+       a. Read each subagent's summary (what was done, which files changed, why).
+       b. Conflict check: did any subagent touch a file not listed in the
+          Independence proof? If so, log and follow the Failure policy.
+       c. Run the full test suite; confirm no cross-contamination.
+       d. Spot check: pick 1-2 subagent diffs at random and review by hand to
+          catch systemic errors.
+    5. Any check fails → follow execution-plan.md's Failure policy
+       (abort batch / continue others / rollback).
+    6. All green → check off every box in the batch; proceed to the next batch.
+    7. After all batches complete → run the full test suite again and dispatch
+       a final Reviewer over the whole change.
+
+    ─── Forbidden ───
+    - Adding per-task two-stage review "for safety" (that belongs to tdd-subagent;
+      it violates the design intent of tdd-parallel)
+    - Running batches in parallel (batches must be sequential)
+    - Dispatching subagents before verifying the Independence proof
+    - Skipping batch-end integration verification and moving to the next batch
+    - Letting a subagent touch a file not listed in the Independence proof
+      without handling it
+    - Bundling an entire batch into one mega-task for a single subagent
+      (defeats the parallel value)
+    - Creating a per-subagent worktree (all dispatched subagents share the
+      worktree validated in Step 0)
+
+    ─── When blocked ───
+    - Stop. Record the blocker under `## Open Questions` in design.md.
+    - Report back to the user.
+    - Do not simplify tests or skip verification to make progress.

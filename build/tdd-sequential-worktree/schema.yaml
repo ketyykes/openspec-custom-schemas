@@ -1,0 +1,356 @@
+# GENERATED FILE — do not edit. Source of truth: openspec-custom-schemas/src/
+# Rebuild: node src/build.mjs   |   Variant: tdd-sequential-worktree (mode=sequential, worktree=true)
+name: tdd-sequential-worktree
+version: 1
+description: |
+  TDD-disciplined sequential workflow with isolated git worktree.
+  Single-agent, in-order execution inside a dedicated worktree branch.
+  Suitable for small-to-medium changes that must not contaminate the
+  current working tree.
+
+  Inlined disciplines (self-contained; no external plugin required):
+    - Test-first commitment via test-plan.md
+    - RED -> GREEN -> REFACTOR enforcement in apply.instruction
+    - Sized ASCII overview (incl. UI mockups for frontend work)
+    - Isolated worktree per change (git-worktree isolation discipline);
+      environment.md records branch, setup, baseline, teardown
+
+  Output language is controlled by openspec/config.yaml `context:`
+  (see OpenSpec docs/multi-language.md), not by this schema.
+
+artifacts:
+  - id: proposal
+    generates: proposal.md
+    description: Why this change exists (Why / What / Capabilities / Impact)
+    template: proposal.md
+    instruction: |
+      Create proposal.md that establishes WHY this change is needed.
+
+      Sections (in order):
+      - **Why**: 1-2 sentences on the problem or opportunity. Why now?
+      - **What Changes**: Bullet list of concrete changes. Mark breaking changes with **BREAKING**.
+      - **Capabilities**:
+        - **New Capabilities**: List new capabilities (each maps to `specs/<name>/spec.md`).
+          Use kebab-case names (e.g., `user-auth`, `data-export`).
+        - **Modified Capabilities**: List capabilities whose REQUIREMENTS change.
+          Implementation-only changes do not belong here.
+        - Check `openspec/specs/` before naming to reuse existing capability names.
+      - **Impact**: Affected code, APIs, dependencies, teams, external systems.
+
+      The Capabilities section is the contract between proposal and specs phases.
+      Every capability listed here MUST get a corresponding spec file.
+
+      Keep it 1-2 pages. The "how" belongs in design.md, not here.
+    requires: []
+
+  - id: specs
+    generates: "specs/**/*.md"
+    description: WHAT — detailed specifications per capability
+    template: spec.md
+    instruction: |
+      Create `specs/<capability>/spec.md` for each capability listed in the proposal.
+
+      Delta operations (use ## headers exactly):
+      - **ADDED Requirements**: New requirements
+      - **MODIFIED Requirements**: MUST include the full updated content (not a diff)
+      - **REMOVED Requirements**: MUST include **Reason** and **Migration**
+      - **RENAMED Requirements**: Use FROM:/TO: format
+
+      Requirement format:
+      - `### Requirement: <name>` followed by description (use SHALL / MUST; avoid should/may)
+      - Each requirement MUST have at least one Scenario
+      - Scenario header MUST use exactly 4 hashtags (`####`). 3 hashtags or bullets fail silently.
+      - Scenario body uses WHEN / THEN form
+
+      MODIFIED workflow:
+      1. Locate the existing requirement in `openspec/specs/<capability>/spec.md`
+      2. Copy the entire block (from `### Requirement:` through all Scenarios)
+      3. Paste under `## MODIFIED Requirements` and edit to reflect new behavior
+      4. Header text must match exactly (whitespace-insensitive)
+
+      Common pitfall: Using MODIFIED with partial content loses detail at archive time.
+      If adding new concerns without changing existing behavior, use ADDED instead.
+
+      ⚠️ Do NOT embed ASCII diagrams or visualizations in spec.md.
+      All visuals belong in overview.md. spec.md must stay as pure requirement
+      language so the validator can parse it correctly.
+    requires:
+      - proposal
+
+  - id: design
+    generates: design.md
+    description: HOW — technical design and decisions
+    template: design.md
+    instruction: |
+      Create design.md to explain HOW to implement the change.
+      Include only when any of these apply:
+      - Cross-service / cross-module change or new architectural pattern
+      - New external dependency or significant data model change
+      - Security, performance, or migration complexity
+      - Ambiguity that benefits from technical decisions before coding
+
+      Sections:
+      - **Context**: Background, current state, constraints, stakeholders
+      - **Goals / Non-Goals**: What this design achieves and explicitly excludes
+      - **Decisions**: Key technical choices with rationale (why X over Y).
+        Each decision MUST list alternatives considered.
+      - **Risks / Trade-offs**: Format `[Risk] -> Mitigation`
+      - **Migration Plan**: Deployment steps and rollback strategy (if applicable)
+      - **Open Questions**: Outstanding decisions or unknowns
+
+      Focus on architecture and approach, not line-by-line implementation.
+      Reference the proposal (motivation) and specs (requirements).
+    requires:
+      - proposal
+
+  - id: test-plan
+    generates: test-plan.md
+    description: TDD pre-commitment — which tests cover each requirement, and why first
+    template: test-plan.md
+    instruction: |
+      Create test-plan.md. **This is the RED-phase commitment document.
+      Do NOT describe implementation logic here.**
+
+      For each requirement in specs:
+      - List 1-N test names in imperative form
+        (e.g., `user_can_export_csv`, `export_rejects_when_no_users_selected`)
+      - Map each test explicitly to a Scenario (####)
+      - State the expected assertion: what input -> what output / state change / error
+      - State why this test must be written first (golden path? edge case? regression guard?)
+
+      Format (one block per capability):
+      ```
+      ## <capability-name>
+
+      ### Requirement: <requirement-name>
+
+      | Test name | Scenario | Assertion | Why first | Tier |
+      |-----------|----------|-----------|-----------|------|
+      | test_x | Scenario A | input ... -> output ... | golden path | unit |
+      ```
+
+      The `Tier` column is REQUIRED for every test row (values: unit | integration | e2e).
+      Mixing unit and integration in one row is not allowed; split into separate rows.
+
+      Validation checks:
+      - Every requirement has at least one test
+      - Every Scenario has at least one test
+      - Every row has a Tier value
+
+      This file is read repeatedly during apply as the source of "what to RED next".
+    requires:
+      - specs
+
+  - id: overview
+    generates: overview.md
+    description: ASCII 人類版摘要；依 change 規模與類型動態決定區塊
+    template: overview.md
+    instruction: |
+      建立 overview.md，給人類一頁讀完此 change。
+      **所有 ASCII 圖必須包在 ``` 三引號程式碼區塊內。**
+      Apply 階段不必讀此檔；validator 也不解析它。
+
+      ─── 步驟 1：判定 change 規模（取最大命中）───
+      - **small**：影響 ≤1 capability、預估 tasks ≤8、無新依賴、無架構變更
+      - **medium**：影響 2-3 capabilities、tasks 9-20、或新增一個模組
+      - **large**：影響 ≥4 capabilities、tasks >20、或跨服務 / 含資料遷移
+
+      ─── 步驟 2：判定是否含前端需求 ───
+      只要 specs 內有任一 requirement 描述使用者介面、互動、版面、視覺狀態,
+      即視為「含前端需求」，必須加上 UI Mockups 區塊。
+
+      ─── 步驟 3：依下表組合區塊 ───
+
+      | 區塊 | small | medium | large | 條件 |
+      |------|:-----:|:------:|:-----:|------|
+      | Scope            | ✅ | ✅ | ✅ | 永遠 |
+      | What Changes     | ✅ | ✅ | ✅ | 永遠 |
+      | UI Mockups       | (條件) | (條件) | (條件) | 含前端需求時 |
+      | Architecture     | — | ✅ | ✅ | medium 起 |
+      | Task Tree        | — | — | ✅ | large 起 |
+      | Cross-Cutting Impact | — | — | ✅ | large 起 |
+
+      ─── 步驟 4：各區塊內容規範 ───
+
+      ## Scope
+        - 兩三句白話描述
+        - 規模判定結果（small / medium / large）+ 一句理由
+        - 是否含前端需求 + 一句理由
+
+      ## What Changes
+        - 條列（同 proposal 的 What Changes，但更精簡）
+        - 一個 ``` ASCII 區塊：before / after 對照（純文字、無 UI 細節）
+
+      ## UI Mockups（含前端需求時）
+        依下列繪製慣例輸出多個 state：
+
+        ─── ASCII UI 繪製慣例 ───
+        - 容器邊框：┌─┐ │ └─┘
+        - 按鈕：[Label]、[Label ▾]（含下拉）、[Cancel]（次要）
+        - Radio：( ) 未選、(●) 已選
+        - Checkbox：[ ] 未勾、[x] 已勾
+        - 輸入框：[___________] 空、[value] 有值
+        - 下拉：[value ▼]
+        - Disabled：後綴 ░░░░ 或前綴 (disabled)
+        - 互動箭頭：│ │ ▼ 表示 A 觸發 B
+        - 狀態切換：=== State N: <描述> === 標題分區
+        - 標註：行末對齊 ← 註解
+
+        必含：
+        - 至少 before 與 after 兩個 state（除非是純新增頁面）
+        - 每個關鍵互動觸發的 state（modal、disabled、error、loading）
+        - 多 state 用 === State N === 分區、用 │ ▼ 表示觸發順序
+
+      ## Architecture（medium 起）
+        - 一個 ``` ASCII 區塊：元件 / 資料流 / 依賴關係
+        - 用方塊 + 箭頭表示模組與資料流向
+
+      ## Task Tree（large 起）
+        - 一個 ``` ASCII 區塊：tasks.md 的依賴樹
+        - 用縮排或 ├── └── 表示父子關係
+
+      ## Cross-Cutting Impact（large 起）
+        - 一個 ``` 區塊或 markdown 表格：受影響檔案 / 模組矩陣
+
+      ─── 共通要求 ───
+      - 每個 ASCII 區塊前用一兩句中文說明它在表達什麼
+      - ASCII 寬度不超過 80 字元（terminal 友善）
+      - 不使用全形空格與全形括號（會破壞對齊）
+    requires:
+      - specs
+
+  - id: tasks
+    generates: tasks.md
+    description: Implementation checklist; enforces RED / GREEN / (REFACTOR) structure
+    template: tasks.md
+    instruction: |
+      Create tasks.md. **Apply parses `- [ ]` checkboxes to track progress.
+      Wrong format = no tracking.**
+
+      ─── Mandatory structure ───
+      Every implementation task MUST be preceded by a corresponding test task.
+      Naming prefix:
+      - `X.Y RED: <test name>` → write the test named in test-plan.md (must fail first)
+      - `X.Y+1 GREEN: <implementation>` → write the minimum code to pass
+      - `X.Y+2 REFACTOR: <description>` → optional
+
+      ## Grouping
+      - Group by capability or subsystem
+      - Order within group follows dependency
+      - Cross-group dependencies: state `Depends on: §N` on the line under the group header
+
+      ─── Example ───
+      ```
+      ## 1. CSV Export Core
+
+      - [ ] 1.1 RED: write test `export_returns_csv_with_headers`
+      - [ ] 1.2 GREEN: implement CsvExporter.export()
+      - [ ] 1.3 RED: write test `export_handles_unicode`
+      - [ ] 1.4 GREEN: extend CsvExporter to encode UTF-8
+      - [ ] 1.5 REFACTOR: extract header logic into helper
+
+      ## 2. UI Wiring
+      Depends on: §1
+
+      - [ ] 2.1 RED: write test `export_button_visible_on_user_list`
+      - [ ] 2.2 GREEN: add Export CSV button to UserList
+      ```
+
+      ─── Forbidden ───
+      - Two GREEN tasks without a RED between them
+      - A standalone "implement X" task with no corresponding test
+      - Mixing test + impl description in one checkbox
+    requires:
+      - specs
+      - test-plan
+      - design
+
+  - id: environment
+    generates: environment.md
+    description: Isolated worktree record — branch, setup, baseline, teardown
+    template: environment.md
+    instruction: |
+      Create environment.md to declare the isolated worktree this change runs in.
+      This artifact is mandatory for every worktree variant; apply reads it on
+      every start to confirm the working directory is the declared worktree.
+
+      Sections (in order):
+      - **Branch**:
+        - `Branch name`: kebab-case, prefix `change/`, e.g., `change/<change-id>`.
+        - `Base branch`: the integration branch this worktree branches from
+          (typically `main` or `master`).
+      - **Setup commands**: a runnable shell block including, in order:
+        - `git worktree add <path> -b change/<change-id> <base-branch>`
+        - `cd <path>`
+        - dependency install (e.g., `pnpm install`)
+        - baseline test command (e.g., `pnpm test`)
+      - **Verification**:
+        - `Baseline tests`: PASS / FAIL with a one-line result summary
+        - `Initial commit hash`: SHA of the worktree's starting commit
+        - `Worktree path`: absolute path, used by apply for the Step 0 check
+      - **Teardown**: a runnable shell block to remove the worktree and
+        optionally delete the branch when work is finished.
+
+      Conventions:
+      - Use absolute paths in the Worktree path field; relative paths break the
+        Step 0 cwd check.
+      - Do not list optional commands; list the exact commands that were run.
+      - Update the Verification section whenever the baseline is re-established.
+    requires:
+      - proposal
+
+apply:
+  requires: [tasks]
+  tracks: tasks.md
+  instruction: |
+    Process every unchecked checkbox in tasks.md in order.
+    **Strict RED → GREEN → REFACTOR.**
+
+    Commit behavior assumes the agent host has git permission. If commits
+    cannot be made, the discipline degrades to in-memory steps; do not skip
+    the test-first sequencing regardless.
+
+    ─── Step 0: Worktree pre-flight check ───
+    0a. Read environment.md; obtain the worktree path and base branch.
+    0b. Verify the current cwd is inside the worktree path declared in
+        environment.md. If not, run the setup commands listed in
+        environment.md to enter the worktree.
+    0c. Run the full test suite to confirm the baseline is green.
+        If not green, stop, report, and do not start any task.
+    0d. Record the baseline commit hash into environment.md's Verification
+        section (if not already recorded).
+
+    ─── For each RED task ───
+    1. Read test-plan.md to find the assertion spec for the named test.
+    2. Add the test to the test file (with required setup / teardown);
+       ensure the test runner discovers it.
+    3. Run the test suite (or the targeted test file).
+    4. **You MUST see this test fail.** If it unexpectedly passes, stop and
+       investigate. Possible causes:
+       (a) wrong target (b) existing implementation already covers it
+       (c) assertion is too loose
+    5. Commit `test: <test name> (RED)`; check off the box.
+
+    ─── For each GREEN task ───
+    1. Write the minimum code to make the corresponding RED test pass.
+    2. **Do NOT write extra code for "future maybe" use** (YAGNI).
+    3. Run the test suite; confirm the target test flips red -> green.
+    4. Confirm all other existing tests stay green (no regression).
+    5. Commit `feat/fix: <description> (GREEN)`; check off the box.
+
+    ─── For each REFACTOR task ───
+    1. Refactor without adding new behavior.
+    2. Run the full test suite; all green required.
+    3. Commit `refactor: <description>`; check off the box.
+
+    ─── Forbidden ───
+    - Writing implementation before tests
+    - Mixing test + implementation in the same commit
+    - Skipping RED and going straight to GREEN
+    - Ignoring an unexpectedly-passing test (must stop and investigate)
+    - Loosening an existing test's assertion just to make GREEN pass
+
+    ─── When blocked ───
+    - Stop. Record the blocker under `## Open Questions` in design.md.
+    - Report back to the user.
+    - Do not simplify tests or skip verification to make progress.

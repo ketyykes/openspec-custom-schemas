@@ -1,0 +1,22 @@
+name: tdd-subagent-worktree
+version: 1
+description: |
+  TDD-disciplined workflow with subagent-driven execution, two-stage review,
+  and isolated git worktree. Inlines subagent-driven-development and
+  git-worktree isolation disciplines: per-task fresh subagent dispatch, spec
+  compliance review (Stage 1), then code quality review (Stage 2), all inside
+  a dedicated worktree branch.
+
+  Inlined disciplines (self-contained; no external plugin required):
+    - Test-first commitment via test-plan.md
+    - RED -> GREEN -> REFACTOR enforcement inside each Implementer subagent
+    - Two-stage review per task (spec compliance → code quality), with fix-loops
+    - Per-role model selection recorded in execution-plan.md
+    - Isolated worktree per change; environment.md records branch, setup,
+      baseline, teardown; all dispatched subagents share the same worktree
+    - Sized ASCII overview (incl. UI mockups for frontend work)
+
+  Output language is controlled by openspec/config.yaml `context:`
+  (see OpenSpec docs/multi-language.md), not by this schema.
+
+artifacts:

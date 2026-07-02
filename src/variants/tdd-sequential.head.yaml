@@ -1,0 +1,16 @@
+name: tdd-sequential
+version: 1
+description: |
+  TDD-disciplined sequential workflow with ASCII visual companion.
+  Single-agent, in-order execution. Suitable for small-to-medium changes
+  where parallel/subagent overhead would not pay off.
+
+  Inlined disciplines (self-contained; no external plugin required):
+    - Test-first commitment via test-plan.md
+    - RED -> GREEN -> REFACTOR enforcement in apply.instruction
+    - Sized ASCII overview (incl. UI mockups for frontend work)
+
+  Output language is controlled by openspec/config.yaml `context:`
+  (see OpenSpec docs/multi-language.md), not by this schema.
+
+artifacts:

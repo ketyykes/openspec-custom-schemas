@@ -1,0 +1,15 @@
+# macOS
+.DS_Store
+
+# Node（本專案零依賴，以下為防禦性忽略）
+node_modules/
+*.log
+
+# 編輯器 / 暫存
+.vscode/
+.idea/
+*.swp
+
+# 注意：build/ 為 src/build.mjs 的產生物，但「刻意納入版控」——
+# 方便他人免裝 Node 直接複製使用。若改為由 CI 產生，再把 build/ 加到此檔
+# 並執行 `git rm -r --cached build`。

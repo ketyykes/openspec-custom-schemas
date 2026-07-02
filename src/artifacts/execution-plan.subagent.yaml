@@ -1,0 +1,43 @@
+  - id: execution-plan
+    generates: execution-plan.md
+    description: Subagent dispatch plan — per-task contract, roles, model selection
+    template: execution-plan.md
+    instruction: |
+      Create execution-plan.md to declare how subagents execute the tasks.
+
+      Sections (in order):
+      - **Mode**: must be `subagent-driven`.
+      - **Per-task contract**: list exactly what each dispatched subagent receives.
+        Subagents do not inherit the main conversation context, so this contract
+        is what they get. Required entries:
+        - Full task text from tasks.md (RED + GREEN pair)
+        - Matching entry in test-plan.md (test name / scenario / assertion / why first / tier)
+        - Relevant spec.md section (the capability's requirement + scenarios)
+        - Relevant design.md section (decisions / risks affecting this task)
+        - Explicit "not given" list (other tasks, unrelated capability specs)
+      - **Roles**: three roles, each with default_model + rationale + review checklist:
+        - **Implementer** (default_model: `haiku`); list upgrade triggers
+          (`upgrade_to_sonnet_when`, `upgrade_to_opus_when`).
+        - **Spec Reviewer (Stage 1)** (default_model: `sonnet`); reviews requirement
+          coverage, scope creep, RED → Scenario mapping. Never reviews
+          naming/structure/quality.
+        - **Code-Quality Reviewer (Stage 2)** (default_model: `opus`); reviews idioms,
+          duplication, edge cases, error handling, readability. Never re-litigates
+          whether the spec is right.
+      - **Escalation**:
+        - Implementer rejected by the same reviewer N times in a row (suggest N=3)
+          → upgrade model, redispatch.
+        - Spec Reviewer's own judgment is inconsistent → escalate to a human for
+          spec clarification.
+        - Code-Quality vs. Implementer style disagreement → existing codebase style wins.
+        - Any stage BLOCKED for over 30 minutes → escalate to a human.
+
+      Model selection principle:
+      use the least powerful model that can handle each role to conserve cost
+      and increase speed.
+
+      This file is read on every task during apply to dispatch subagents and
+      assign models; keep it accurate after any task is added or removed.
+    requires:
+      - test-plan
+

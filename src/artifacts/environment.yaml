@@ -1,0 +1,34 @@
+  - id: environment
+    generates: environment.md
+    description: Isolated worktree record — branch, setup, baseline, teardown
+    template: environment.md
+    instruction: |
+      Create environment.md to declare the isolated worktree this change runs in.
+      This artifact is mandatory for every worktree variant; apply reads it on
+      every start to confirm the working directory is the declared worktree.
+
+      Sections (in order):
+      - **Branch**:
+        - `Branch name`: kebab-case, prefix `change/`, e.g., `change/<change-id>`.
+        - `Base branch`: the integration branch this worktree branches from
+          (typically `main` or `master`).
+      - **Setup commands**: a runnable shell block including, in order:
+        - `git worktree add <path> -b change/<change-id> <base-branch>`
+        - `cd <path>`
+        - dependency install (e.g., `pnpm install`)
+        - baseline test command (e.g., `pnpm test`)
+      - **Verification**:
+        - `Baseline tests`: PASS / FAIL with a one-line result summary
+        - `Initial commit hash`: SHA of the worktree's starting commit
+        - `Worktree path`: absolute path, used by apply for the Step 0 check
+      - **Teardown**: a runnable shell block to remove the worktree and
+        optionally delete the branch when work is finished.
+
+      Conventions:
+      - Use absolute paths in the Worktree path field; relative paths break the
+        Step 0 cwd check.
+      - Do not list optional commands; list the exact commands that were run.
+      - Update the Verification section whenever the baseline is re-established.
+    requires:
+      - proposal
+

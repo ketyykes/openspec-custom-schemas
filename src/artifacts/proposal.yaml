@@ -1,0 +1,24 @@
+  - id: proposal
+    generates: proposal.md
+    description: Why this change exists (Why / What / Capabilities / Impact)
+    template: proposal.md
+    instruction: |
+      Create proposal.md that establishes WHY this change is needed.
+
+      Sections (in order):
+      - **Why**: 1-2 sentences on the problem or opportunity. Why now?
+      - **What Changes**: Bullet list of concrete changes. Mark breaking changes with **BREAKING**.
+      - **Capabilities**:
+        - **New Capabilities**: List new capabilities (each maps to `specs/<name>/spec.md`).
+          Use kebab-case names (e.g., `user-auth`, `data-export`).
+        - **Modified Capabilities**: List capabilities whose REQUIREMENTS change.
+          Implementation-only changes do not belong here.
+        - Check `openspec/specs/` before naming to reuse existing capability names.
+      - **Impact**: Affected code, APIs, dependencies, teams, external systems.
+
+      The Capabilities section is the contract between proposal and specs phases.
+      Every capability listed here MUST get a corresponding spec file.
+
+      Keep it 1-2 pages. The "how" belongs in design.md, not here.
+    requires: []
+

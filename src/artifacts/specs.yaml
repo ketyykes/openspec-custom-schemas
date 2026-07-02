@@ -1,0 +1,34 @@
+  - id: specs
+    generates: "specs/**/*.md"
+    description: WHAT — detailed specifications per capability
+    template: spec.md
+    instruction: |
+      Create `specs/<capability>/spec.md` for each capability listed in the proposal.
+
+      Delta operations (use ## headers exactly):
+      - **ADDED Requirements**: New requirements
+      - **MODIFIED Requirements**: MUST include the full updated content (not a diff)
+      - **REMOVED Requirements**: MUST include **Reason** and **Migration**
+      - **RENAMED Requirements**: Use FROM:/TO: format
+
+      Requirement format:
+      - `### Requirement: <name>` followed by description (use SHALL / MUST; avoid should/may)
+      - Each requirement MUST have at least one Scenario
+      - Scenario header MUST use exactly 4 hashtags (`####`). 3 hashtags or bullets fail silently.
+      - Scenario body uses WHEN / THEN form
+
+      MODIFIED workflow:
+      1. Locate the existing requirement in `openspec/specs/<capability>/spec.md`
+      2. Copy the entire block (from `### Requirement:` through all Scenarios)
+      3. Paste under `## MODIFIED Requirements` and edit to reflect new behavior
+      4. Header text must match exactly (whitespace-insensitive)
+
+      Common pitfall: Using MODIFIED with partial content loses detail at archive time.
+      If adding new concerns without changing existing behavior, use ADDED instead.
+
+      ⚠️ Do NOT embed ASCII diagrams or visualizations in spec.md.
+      All visuals belong in overview.md. spec.md must stay as pure requirement
+      language so the validator can parse it correctly.
+    requires:
+      - proposal
+

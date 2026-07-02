@@ -1,0 +1,51 @@
+    Process every unchecked checkbox in tasks.md in order.
+    **Strict RED → GREEN → REFACTOR.**
+
+    Commit behavior assumes the agent host has git permission. If commits
+    cannot be made, the discipline degrades to in-memory steps; do not skip
+    the test-first sequencing regardless.
+
+    ─── Step 0: Worktree pre-flight check ───
+    0a. Read environment.md; obtain the worktree path and base branch.
+    0b. Verify the current cwd is inside the worktree path declared in
+        environment.md. If not, run the setup commands listed in
+        environment.md to enter the worktree.
+    0c. Run the full test suite to confirm the baseline is green.
+        If not green, stop, report, and do not start any task.
+    0d. Record the baseline commit hash into environment.md's Verification
+        section (if not already recorded).
+
+    ─── For each RED task ───
+    1. Read test-plan.md to find the assertion spec for the named test.
+    2. Add the test to the test file (with required setup / teardown);
+       ensure the test runner discovers it.
+    3. Run the test suite (or the targeted test file).
+    4. **You MUST see this test fail.** If it unexpectedly passes, stop and
+       investigate. Possible causes:
+       (a) wrong target (b) existing implementation already covers it
+       (c) assertion is too loose
+    5. Commit `test: <test name> (RED)`; check off the box.
+
+    ─── For each GREEN task ───
+    1. Write the minimum code to make the corresponding RED test pass.
+    2. **Do NOT write extra code for "future maybe" use** (YAGNI).
+    3. Run the test suite; confirm the target test flips red -> green.
+    4. Confirm all other existing tests stay green (no regression).
+    5. Commit `feat/fix: <description> (GREEN)`; check off the box.
+
+    ─── For each REFACTOR task ───
+    1. Refactor without adding new behavior.
+    2. Run the full test suite; all green required.
+    3. Commit `refactor: <description>`; check off the box.
+
+    ─── Forbidden ───
+    - Writing implementation before tests
+    - Mixing test + implementation in the same commit
+    - Skipping RED and going straight to GREEN
+    - Ignoring an unexpectedly-passing test (must stop and investigate)
+    - Loosening an existing test's assertion just to make GREEN pass
+
+    ─── When blocked ───
+    - Stop. Record the blocker under `## Open Questions` in design.md.
+    - Report back to the user.
+    - Do not simplify tests or skip verification to make progress.

@@ -1,0 +1,26 @@
+  - id: design
+    generates: design.md
+    description: HOW — technical design and decisions
+    template: design.md
+    instruction: |
+      Create design.md to explain HOW to implement the change.
+      Include only when any of these apply:
+      - Cross-service / cross-module change or new architectural pattern
+      - New external dependency or significant data model change
+      - Security, performance, or migration complexity
+      - Ambiguity that benefits from technical decisions before coding
+
+      Sections:
+      - **Context**: Background, current state, constraints, stakeholders
+      - **Goals / Non-Goals**: What this design achieves and explicitly excludes
+      - **Decisions**: Key technical choices with rationale (why X over Y).
+        Each decision MUST list alternatives considered.
+      - **Risks / Trade-offs**: Format `[Risk] -> Mitigation`
+      - **Migration Plan**: Deployment steps and rollback strategy (if applicable)
+      - **Open Questions**: Outstanding decisions or unknowns
+
+      Focus on architecture and approach, not line-by-line implementation.
+      Reference the proposal (motivation) and specs (requirements).
+    requires:
+      - proposal
+

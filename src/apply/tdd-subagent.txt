@@ -1,0 +1,64 @@
+    Process every unchecked checkbox in tasks.md in order.
+    **Every task runs the full three-role flow; do not reorder, skip, or merge.**
+
+    Commit behavior assumes the agent host has git permission. If commits
+    cannot be made, the discipline degrades to in-memory steps; do not skip
+    the test-first sequencing regardless.
+
+    ─── Per Task: dispatch Implementer ───
+    1. Read execution-plan.md for the Implementer's default_model and upgrade triggers.
+    2. Dispatch a fresh subagent as Implementer with:
+       - The complete text of the task from tasks.md (the RED + GREEN pair)
+       - The matching entry from test-plan.md (test name / scenario / assertion / why first)
+       - The relevant spec.md section (only the capability this task touches)
+       - The relevant design.md section (decisions and constraints affecting this task)
+       - Explicit instruction: write the RED test → run tests, see it fail
+         → write minimum GREEN implementation → run tests, see it pass
+         → self-review → commit
+    3. Implementer reports status:
+       - DONE: proceed to Step 4 (Stage 1)
+       - DONE_WITH_CONCERNS: read concerns. If they are about correctness or scope,
+         resolve before Stage 1. If they are observational (e.g., "this file grew big"),
+         log and continue.
+       - NEEDS_CONTEXT: supply the missing context; redispatch with the same model.
+       - BLOCKED: follow escalation rules — context gap → add context;
+         reasoning gap → upgrade model; task too big → split; plan wrong → escalate.
+         Never redispatch the same model under the same conditions.
+
+    ─── Per Task: Stage 1 — Spec Compliance Review ───
+    4. Dispatch a fresh subagent as Spec Reviewer (model per execution-plan.md).
+    5. Sole task: compare code against spec and test-plan; answer
+       "does the code match the spec?"
+       - Look at: requirement coverage, scope creep, RED → Scenario mapping.
+       - Do NOT look at: naming, structure, quality (that is Stage 2's job).
+    6. ❌ Stage 1 fails → Implementer (same role, fresh subagent) fixes → back to Step 4.
+       ✅ Stage 1 passes → proceed to Step 7.
+
+    ─── Per Task: Stage 2 — Code Quality Review ───
+    7. Dispatch a fresh subagent as Code-Quality Reviewer (model per execution-plan.md).
+    8. Sole task: review implementation quality.
+       - Look at: naming, duplication, edge cases, error handling, readability,
+         consistency with existing style.
+       - Do NOT re-litigate whether the spec is right (Stage 1 already covered that).
+    9. ❌ Stage 2 fails → Implementer fixes → back to Step 7.
+       ✅ Stage 2 passes → check off the box; proceed to the next task.
+
+    ─── After all tasks complete ───
+    10. Dispatch a final Code Reviewer over the full set of commits to confirm
+        cross-task integration is consistent.
+    11. All green → apply done.
+
+    ─── Forbidden ───
+    - Dispatching multiple Implementer subagents in parallel (they will conflict)
+    - Skipping Stage 1 or Stage 2
+    - Starting Stage 2 before Stage 1 failures are resolved
+    - Moving to the next task without running the fix-loop on reviewer findings
+    - Letting the Implementer's self-review replace reviewer review (both are required)
+    - Waving through "close enough" spec deviations
+    - Redispatching a BLOCKED task with the same model under the same conditions
+    - Letting any subagent read plan files directly (always paste the full task text)
+
+    ─── When blocked ───
+    - Stop. Record the blocker under `## Open Questions` in design.md.
+    - Report back to the user.
+    - Do not simplify tests or skip verification to make progress.

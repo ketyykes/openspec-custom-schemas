@@ -1,0 +1,21 @@
+name: tdd-parallel
+version: 1
+description: |
+  TDD-disciplined workflow with batch-parallel subagent dispatch.
+  Inlines a parallel-agent dispatch discipline: sequential batches,
+  parallel Implementer subagents within each batch, batch-end integration
+  verification (no per-task reviewer roles, by design). No worktree isolation.
+
+  Inlined disciplines (self-contained; no external plugin required):
+    - Test-first commitment via test-plan.md
+    - RED -> GREEN enforcement inside each Implementer subagent
+    - Independence proof per batch (disjoint files; parallel-safe)
+    - Batch-end integration verification (summaries + full suite + spot check)
+    - Per-implementer model assignment recorded in execution-plan.md
+    - Final reviewer pass over all batches when apply completes
+    - Sized ASCII overview (incl. UI mockups for frontend work)
+
+  Output language is controlled by openspec/config.yaml `context:`
+  (see OpenSpec docs/multi-language.md), not by this schema.
+
+artifacts:
