@@ -47,7 +47,8 @@ src/            ← 唯一要維護的來源（去重後）
                   environment（worktree 專用）
   apply/        apply body，每個變體各 1 份（各變體真正獨有的行為核心）
   templates/    9 份唯一 template（原本 46 份的去重版）
-  build.mjs     產生器（零依賴 Node ESM）
+  build.mjs     產生器（零依賴 Node ESM，僅用 fs/path/url 內建模組；
+                建議 Node.js ≥ 20，與 OpenSpec 本身的執行環境要求一致）
 
 build/          ← 產生物；OpenSpec 直接可用，安裝時從這裡複製（請勿手改）
   tdd-sequential/ … tdd-parallel-worktree/
@@ -74,6 +75,20 @@ build/          ← 產生物；OpenSpec 直接可用，安裝時從這裡複製
 | **apply body** | **每變體 1 份**。worktree 版把「共用同一個 worktree」的意識織入 Step 0、dispatch context、Forbidden 三處，屬各變體專屬，不宜機械拼接 |
 | header（name / description） | 每變體 1 份（內容本就各異） |
 
+### 如何新增一個新變體
+
+1. 在 `src/build.mjs` 的 `VARIANTS` 陣列新增一筆 `{ name, mode, worktree }`。
+2. 新增 `src/variants/<name>.head.yaml`（name / version / description）。
+3. 新增 `src/apply/<name>.txt`（apply body，完整撰寫，不與其他變體拼接——
+   這是唯一「刻意不去重」的部分，見上表）。
+4. 若 `mode` 是全新模式（非既有的 `sequential` / `subagent` / `parallel`）：
+   新增 `src/artifacts/execution-plan.<mode>.yaml` 與
+   `src/templates/execution-plan.<mode>.md`。`build.mjs` 會用 `v.mode` 字串
+   直接組出檔名去讀，不需改動 `buildSchema()` / `buildFiles()` 的邏輯。
+5. 執行 `node src/build.mjs` 產生，再用 `node src/build.mjs --check` 確認同步。
+6. 手動更新本 README 最上方的「家族成員」與「變體差異對照」兩個表格——
+   這兩張表是人工維護，不是 `build.mjs` 的產生物。
+
 ## 完成狀態
 
 6/6 變體皆由 `src/build.mjs` 產生到 `build/`：
@@ -90,12 +105,21 @@ build/          ← 產生物；OpenSpec 直接可用，安裝時從這裡複製
 ## 各 schema 共通的 artifact
 
 ```
-proposal ──┬─► specs ─────┬─► test-plan ─┬─► tasks
-           │              │              │
-           └─► design ────┘──────────────┘
-                                         │
-                          overview ──────┘
+proposal
+ ├─► specs
+ │     ├─► test-plan ─► execution-plan *
+ │     └─► overview（純人類讀，無其他 artifact 依賴它）
+ └─► design
+
+tasks 直接依賴：specs + test-plan + design（非 sequential 變體另加 execution-plan）
+environment（worktree 專用）直接依賴：proposal，獨立於上圖之外
+
+* execution-plan 僅 subagent / parallel 變體存在；sequential 變體沒有這個節點。
 ```
+
+> 圖只畫單一父節點的分支；`tasks` 有 3～4 個直接依賴（見下方說明），
+> 無法在樹狀圖中乾淨表示多重父節點，因此另外列出，避免像舊版那樣
+> 用共用垂直線畫出「design → test-plan」「overview → tasks」這類實際不存在的邊。
 
 | Artifact | 用途 | 由誰讀 |
 |----------|------|--------|
