@@ -85,8 +85,7 @@ build/          ← 產生物；OpenSpec 直接可用，安裝時從這裡複製
 - ✅ `tdd-parallel` — + 批次並行派發（含 execution-plan.md，無兩階段審查）
 - ✅ `tdd-parallel-worktree` — parallel + worktree（含 environment.md + execution-plan.md）
 
-> 歷史紀錄：`IMPLEMENTATION_PLAN.md` 是當初建立 5 個變體時給 subagent 的規格書，
-> 保留作為設計依據；日常維護請以 `src/` 為準。
+> 日常維護請以 `src/` 為準，改完跑 `node src/build.mjs` 同步到 `build/`。
 
 ## 各 schema 共通的 artifact
 
