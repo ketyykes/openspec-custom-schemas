@@ -1,0 +1,3 @@
+# build.mjs 以 LF 產生檔案，--check 做逐字比對；
+# 強制文字檔以 LF 存取，避免 Windows autocrlf 讓 build/ 與產生內容出現換行差異。
+* text=auto eol=lf
