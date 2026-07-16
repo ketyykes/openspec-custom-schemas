@@ -16,8 +16,19 @@ const HERE = path.dirname(fileURLToPath(import.meta.url)); // .../openspec-custo
 const ROOT = path.dirname(HERE);                           // .../openspec-custom-schemas
 const BUILD = path.join(ROOT, 'build');
 
-// 所有變體共用的 apply 前綴(requires / tracks / instruction 標頭)。
-const APPLY_PREFIX = 'apply:\n  requires: [tasks]\n  tracks: tasks.md\n  instruction: |\n';
+// apply 前綴(requires / tracks / instruction 標頭)。
+// requires 列出「除 overview 外」的所有 artifacts:overview 是純人類讀物,
+// 不 gate apply;其餘都是 apply.instruction 會讀取或寫入的檔案(worktree 變體
+// 的 Step 0 依賴 environment.md,而 environment 不在 tasks 的依賴鏈上,
+// 必須在這裡列出才會被 `openspec instructions apply` 的 blocked 檢查涵蓋)。
+// 順序與 schema 內 artifacts 的宣告順序一致。
+function applyPrefix(v) {
+  const requires = ['proposal', 'specs', 'design', 'test-plan'];
+  if (v.mode !== 'sequential') requires.push('execution-plan');
+  requires.push('tasks');
+  if (v.worktree) requires.push('environment');
+  return `apply:\n  requires: [${requires.join(', ')}]\n  tracks: tasks.md\n  instruction: |\n`;
+}
 
 // 6 個變體 = 執行模式 {sequential, subagent, parallel} × worktree {false, true}。
 const VARIANTS = [
@@ -32,7 +43,15 @@ const VARIANTS = [
 // 每個變體都有的 6 份共用 template。
 const SHARED_TEMPLATES = ['proposal.md', 'spec.md', 'design.md', 'test-plan.md', 'overview.md', 'tasks.md'];
 
-const read = (rel) => fs.readFileSync(path.join(HERE, rel), 'utf8');
+// 讀取來源片段;片段以純文字串接組成 schema.yaml,因此必須以換行結尾,
+// 否則會與下一個片段黏行,產出壞掉的 YAML。
+function read(rel) {
+  const content = fs.readFileSync(path.join(HERE, rel), 'utf8');
+  if (!content.endsWith('\n')) {
+    throw new Error(`來源片段未以換行結尾,串接會黏行: src/${rel}`);
+  }
+  return content;
+}
 
 // 產生檔頂註解:標明此檔為產生物、來源與重建方式。OpenSpec 的 YAML parser 會忽略註解。
 function marker(v) {
@@ -43,21 +62,33 @@ function marker(v) {
 // 組出某變體的 schema.yaml 完整內容(含 GENERATED 標記)。
 function buildSchema(v) {
   const nonSeq = v.mode !== 'sequential';
+  const head = read(`variants/${v.name}.head.yaml`); // name / version / description / 'artifacts:'
+  if (!head.endsWith('artifacts:\n')) {
+    throw new Error(`head 必須以 'artifacts:' 收尾,否則串接出壞 YAML: src/variants/${v.name}.head.yaml`);
+  }
+  const tasks = read('artifacts/tasks.yaml');
+  if (!tasks.endsWith('    requires:\n')) {
+    throw new Error(`tasks.yaml 必須以 '    requires:' 收尾,build 依此補相依項: src/artifacts/tasks.yaml`);
+  }
+  const applyBody = read(`apply/${v.name}.txt`);
+  if (!applyBody.startsWith('    ')) {
+    throw new Error(`apply body 首行必須縮排 4 空格(YAML block scalar): src/apply/${v.name}.txt`);
+  }
   let s = marker(v);
-  s += read(`variants/${v.name}.head.yaml`); // name / version / description / 'artifacts:'
+  s += head;
   s += read('artifacts/proposal.yaml');
   s += read('artifacts/specs.yaml');
   s += read('artifacts/design.yaml');
   s += read('artifacts/test-plan.yaml');
   s += read('artifacts/overview.yaml');
   if (nonSeq) s += read(`artifacts/execution-plan.${v.mode}.yaml`); // 非 sequential 才有
-  s += read('artifacts/tasks.yaml'); // 結尾為 '    requires:\n',以下依模式補上相依項
+  s += tasks; // 結尾為 '    requires:\n',以下依模式補上相依項
   s += '      - specs\n      - test-plan\n';
   if (nonSeq) s += '      - execution-plan\n';
   s += '      - design\n\n';
   if (v.worktree) s += read('artifacts/environment.yaml'); // worktree 才有,放 tasks 之後
-  s += APPLY_PREFIX;
-  s += read(`apply/${v.name}.txt`); // apply body:各變體專屬
+  s += applyPrefix(v);
+  s += applyBody; // apply body:各變體專屬
   return s;
 }
 

@@ -1,5 +1,6 @@
     Process every unchecked checkbox in tasks.md in order.
-    **Every task runs the full three-role flow; do not reorder, skip, or merge.**
+    **Every RED/GREEN task runs the full three-role flow; do not reorder,
+    skip, or merge. REFACTOR tasks run a reduced flow (see below).**
 
     Commit behavior assumes the agent host has git permission. If commits
     cannot be made, the discipline degrades to in-memory steps; do not skip
@@ -8,8 +9,9 @@
     ─── Step 0: Worktree pre-flight check ───
     0a. Read environment.md; obtain the worktree path and base branch.
     0b. Verify the current cwd is inside the worktree path declared in
-        environment.md. If not, run the setup commands listed in
-        environment.md to enter the worktree.
+        environment.md. If not: when the worktree already exists on disk,
+        just cd into it; otherwise run the setup commands from
+        environment.md to create and enter it.
     0c. Run the full test suite to confirm the baseline is green.
         If not green, stop, report, and do not start any task.
     0d. Record the baseline commit hash into environment.md's Verification
@@ -55,6 +57,12 @@
     9. ❌ Stage 2 fails → Implementer fixes → back to Step 7.
        ✅ Stage 2 passes → check off the box; proceed to the next task.
 
+    ─── REFACTOR tasks ───
+    Dispatch a fresh Implementer the same way (same worktree), with this
+    contract instead: refactor only, no behavior change, full test suite
+    stays green, commit `refactor: <description>`. Then run Stage 2 only —
+    Stage 1 does not apply because no spec-visible behavior may change.
+
     ─── After all tasks complete ───
     10. Dispatch a final Code Reviewer over the full set of commits to confirm
         cross-task integration is consistent.
@@ -62,7 +70,8 @@
 
     ─── Forbidden ───
     - Dispatching multiple Implementer subagents in parallel (they will conflict)
-    - Skipping Stage 1 or Stage 2
+    - Skipping Stage 1 or Stage 2 on a RED/GREEN task (REFACTOR tasks run
+      Stage 2 only)
     - Starting Stage 2 before Stage 1 failures are resolved
     - Moving to the next task without running the fix-loop on reviewer findings
     - Letting the Implementer's self-review replace reviewer review (both are required)
@@ -71,6 +80,8 @@
     - Letting any subagent read plan files directly (always paste the full task text)
     - Creating a per-subagent worktree (all dispatched subagents share the
       worktree validated in Step 0)
+    - Tearing down the worktree when apply completes (leave environment.md's
+      Teardown commands to the user; the change may not be merged yet)
 
     ─── When blocked ───
     - Stop. Record the blocker under `## Open Questions` in design.md.

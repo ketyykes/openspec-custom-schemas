@@ -12,14 +12,15 @@
        module overlap). If manual edits since the plan invalidate it, stop and
        request replanning.
     2. Dispatch Implementer subagents in parallel, one per (RED, GREEN) pair
-       inside the batch:
+       inside the batch; a REFACTOR task is its own dispatch unit (contract:
+       refactor only, no behavior change, full test suite stays green):
        - Each subagent uses the model assigned in execution-plan.md
          (can be fine-tuned per task).
        - Each subagent receives: the full task text from tasks.md, the matching
          entry from test-plan.md, the relevant spec / design sections,
          and explicit RED → GREEN → commit instructions.
     3. Wait for all subagents in the batch to report.
-    4. Integration verification (per dispatching-parallel-agents SKILL.md:78-83):
+    4. Integration verification:
        a. Read each subagent's summary (what was done, which files changed, why).
        b. Conflict check: did any subagent touch a file not listed in the
           Independence proof? If so, log and follow the Failure policy.

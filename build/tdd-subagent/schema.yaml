@@ -156,7 +156,7 @@ artifacts:
       - **large**：影響 ≥4 capabilities、tasks >20、或跨服務 / 含資料遷移
 
       ─── 步驟 2：判定是否含前端需求 ───
-      只要 specs 內有任一 requirement 描述使用者介面、互動、版面、視覺狀態,
+      只要 specs 內有任一 requirement 描述使用者介面、互動、版面、視覺狀態，
       即視為「含前端需求」，必須加上 UI Mockups 區塊。
 
       ─── 步驟 3：依下表組合區塊 ───
@@ -236,6 +236,8 @@ artifacts:
         - Relevant spec.md section (the capability's requirement + scenarios)
         - Relevant design.md section (decisions / risks affecting this task)
         - Explicit "not given" list (other tasks, unrelated capability specs)
+        - Worktree path from environment.md (only if this schema includes an
+          environment artifact — worktree variants)
       - **Roles**: three roles, each with default_model + rationale + review checklist:
         - **Implementer** (default_model: `haiku`); list upgrade triggers
           (`upgrade_to_sonnet_when`, `upgrade_to_opus_when`).
@@ -255,7 +257,9 @@ artifacts:
 
       Model selection principle:
       use the least powerful model that can handle each role to conserve cost
-      and increase speed.
+      and increase speed. Model names (haiku / sonnet / opus) are Claude tiers
+      used as examples; on hosts without them, map to the closest
+      fast / balanced / strongest equivalents.
 
       This file is read on every task during apply to dispatch subagents and
       assign models; keep it accurate after any task is added or removed.
@@ -310,11 +314,12 @@ artifacts:
       - design
 
 apply:
-  requires: [tasks]
+  requires: [proposal, specs, design, test-plan, execution-plan, tasks]
   tracks: tasks.md
   instruction: |
     Process every unchecked checkbox in tasks.md in order.
-    **Every task runs the full three-role flow; do not reorder, skip, or merge.**
+    **Every RED/GREEN task runs the full three-role flow; do not reorder,
+    skip, or merge. REFACTOR tasks run a reduced flow (see below).**
 
     Commit behavior assumes the agent host has git permission. If commits
     cannot be made, the discipline degrades to in-memory steps; do not skip
@@ -358,6 +363,12 @@ apply:
     9. ❌ Stage 2 fails → Implementer fixes → back to Step 7.
        ✅ Stage 2 passes → check off the box; proceed to the next task.
 
+    ─── REFACTOR tasks ───
+    Dispatch a fresh Implementer the same way, with this contract instead:
+    refactor only, no behavior change, full test suite stays green, commit
+    `refactor: <description>`. Then run Stage 2 only — Stage 1 does not
+    apply because no spec-visible behavior may change.
+
     ─── After all tasks complete ───
     10. Dispatch a final Code Reviewer over the full set of commits to confirm
         cross-task integration is consistent.
@@ -365,7 +376,8 @@ apply:
 
     ─── Forbidden ───
     - Dispatching multiple Implementer subagents in parallel (they will conflict)
-    - Skipping Stage 1 or Stage 2
+    - Skipping Stage 1 or Stage 2 on a RED/GREEN task (REFACTOR tasks run
+      Stage 2 only)
     - Starting Stage 2 before Stage 1 failures are resolved
     - Moving to the next task without running the fix-loop on reviewer findings
     - Letting the Implementer's self-review replace reviewer review (both are required)

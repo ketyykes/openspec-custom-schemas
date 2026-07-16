@@ -51,6 +51,9 @@ For each batch, prove the tasks within can run in parallel:
 | 1.3 | haiku  | Mechanical |
 | 1.4 | opus   | Architecture-level judgment |
 
+<!-- Model names are Claude tiers used as examples; on hosts without them,
+     map to the closest fast / balanced / strongest equivalents. -->
+
 Upgrade rules:
 - Context gap → add context, redispatch with the **same model**
 - Reasoning gap → **upgrade model**
@@ -65,12 +68,11 @@ When a task within the batch fails:
   revisit at batch end.
 - **rollback all**: revert every commit made within the batch; redispatch the entire batch.
 
-**Default**: continue others (matches the spirit of dispatching-parallel-agents —
-independent failures should not block independent progress).
+**Default**: continue others — independent failures should not block
+independent progress.
 
 ## Integration verification (batch-end)
 
-Per dispatching-parallel-agents SKILL.md:78-83:
 1. Read each implementer subagent's summary.
 2. Check whether any subagent touched a file not listed in the Independence proof.
 3. Run the full test suite.

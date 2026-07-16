@@ -8,8 +8,9 @@
     ─── Step 0: Worktree pre-flight check ───
     0a. Read environment.md; obtain the worktree path and base branch.
     0b. Verify the current cwd is inside the worktree path declared in
-        environment.md. If not, run the setup commands listed in
-        environment.md to enter the worktree.
+        environment.md. If not: when the worktree already exists on disk,
+        just cd into it; otherwise run the setup commands from
+        environment.md to create and enter it.
     0c. Run the full test suite to confirm the baseline is green.
         If not green, stop, report, and do not start any task.
     0d. Record the baseline commit hash into environment.md's Verification
@@ -38,12 +39,18 @@
     2. Run the full test suite; all green required.
     3. Commit `refactor: <description>`; check off the box.
 
+    ─── After all tasks complete ───
+    - Run the full test suite one final time; everything must be green.
+    - Confirm every checkbox in tasks.md is checked.
+
     ─── Forbidden ───
     - Writing implementation before tests
     - Mixing test + implementation in the same commit
     - Skipping RED and going straight to GREEN
     - Ignoring an unexpectedly-passing test (must stop and investigate)
     - Loosening an existing test's assertion just to make GREEN pass
+    - Tearing down the worktree when apply completes (leave environment.md's
+      Teardown commands to the user; the change may not be merged yet)
 
     ─── When blocked ───
     - Stop. Record the blocker under `## Open Questions` in design.md.

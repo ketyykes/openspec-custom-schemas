@@ -161,7 +161,7 @@ artifacts:
       - **large**：影響 ≥4 capabilities、tasks >20、或跨服務 / 含資料遷移
 
       ─── 步驟 2：判定是否含前端需求 ───
-      只要 specs 內有任一 requirement 描述使用者介面、互動、版面、視覺狀態,
+      只要 specs 內有任一 requirement 描述使用者介面、互動、版面、視覺狀態，
       即視為「含前端需求」，必須加上 UI Mockups 區塊。
 
       ─── 步驟 3：依下表組合區塊 ───
@@ -255,8 +255,8 @@ artifacts:
         - `continue others`: mark the failed task BLOCKED; let other tasks
           continue; revisit at batch end.
         - `rollback all`: revert every commit in the batch; redispatch the entire batch.
-        Default is `continue others` (matches dispatching-parallel-agents'
-        spirit — independent failures should not block independent progress).
+        Default is `continue others` — independent failures should not block
+        independent progress.
       - **Integration verification (batch-end)**: list the steps applied at
         each batch's end (read summaries; conflict check; full test suite;
         spot check 1-2 diffs).
@@ -265,6 +265,10 @@ artifacts:
       GREEN must pass test), batch-level integration verification, and the
       final reviewer at the end of all batches. Per-task review is by design
       absent.
+
+      Model names (haiku / sonnet / opus) are Claude tiers used as examples;
+      on hosts without them, map to the closest fast / balanced / strongest
+      equivalents.
 
       This file is read at the start of every batch during apply; keep the
       Independence proof in sync with tasks.md.
@@ -353,7 +357,7 @@ artifacts:
       - proposal
 
 apply:
-  requires: [tasks]
+  requires: [proposal, specs, design, test-plan, execution-plan, tasks, environment]
   tracks: tasks.md
   instruction: |
     Process every unchecked checkbox in tasks.md in order.
@@ -365,8 +369,9 @@ apply:
     ─── Step 0: Worktree pre-flight check ───
     0a. Read environment.md; obtain the worktree path and base branch.
     0b. Verify the current cwd is inside the worktree path declared in
-        environment.md. If not, run the setup commands listed in
-        environment.md to enter the worktree.
+        environment.md. If not: when the worktree already exists on disk,
+        just cd into it; otherwise run the setup commands from
+        environment.md to create and enter it.
     0c. Run the full test suite to confirm the baseline is green.
         If not green, stop, report, and do not start any task.
     0d. Record the baseline commit hash into environment.md's Verification
@@ -380,7 +385,8 @@ apply:
        module overlap). If manual edits since the plan invalidate it, stop and
        request replanning.
     2. Dispatch Implementer subagents in parallel, one per (RED, GREEN) pair
-       inside the batch:
+       inside the batch; a REFACTOR task is its own dispatch unit (contract:
+       refactor only, no behavior change, full test suite stays green):
        - Each subagent uses the model assigned in execution-plan.md
          (can be fine-tuned per task).
        - Each subagent receives: the full task text from tasks.md, the matching
@@ -390,7 +396,7 @@ apply:
          Independence proof guarantees disjoint files, so per-subagent
          worktrees are unnecessary.
     3. Wait for all subagents in the batch to report.
-    4. Integration verification (per dispatching-parallel-agents SKILL.md:78-83):
+    4. Integration verification:
        a. Read each subagent's summary (what was done, which files changed, why).
        b. Conflict check: did any subagent touch a file not listed in the
           Independence proof? If so, log and follow the Failure policy.
@@ -415,6 +421,8 @@ apply:
       (defeats the parallel value)
     - Creating a per-subagent worktree (all dispatched subagents share the
       worktree validated in Step 0)
+    - Tearing down the worktree when apply completes (leave environment.md's
+      Teardown commands to the user; the change may not be merged yet)
 
     ─── When blocked ───
     - Stop. Record the blocker under `## Open Questions` in design.md.

@@ -28,6 +28,10 @@
     2. Run the full test suite; all green required.
     3. Commit `refactor: <description>`; check off the box.
 
+    ─── After all tasks complete ───
+    - Run the full test suite one final time; everything must be green.
+    - Confirm every checkbox in tasks.md is checked.
+
     ─── Forbidden ───
     - Writing implementation before tests
     - Mixing test + implementation in the same commit

@@ -19,7 +19,13 @@ main conversation):
 - The relevant design.md section (decisions / risks affecting this task)
 - Not given: other tasks; unrelated capability specs
 
+<!-- Worktree variants only (schema includes an environment artifact):
+     also list the worktree path from environment.md as a contract entry. -->
+
 ## Roles
+
+<!-- Model names are Claude tiers used as examples; on hosts without them,
+     map to the closest fast / balanced / strongest equivalents. -->
 
 ### Implementer
 

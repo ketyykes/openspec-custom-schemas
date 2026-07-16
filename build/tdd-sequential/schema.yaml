@@ -153,7 +153,7 @@ artifacts:
       - **large**：影響 ≥4 capabilities、tasks >20、或跨服務 / 含資料遷移
 
       ─── 步驟 2：判定是否含前端需求 ───
-      只要 specs 內有任一 requirement 描述使用者介面、互動、版面、視覺狀態,
+      只要 specs 內有任一 requirement 描述使用者介面、互動、版面、視覺狀態，
       即視為「含前端需求」，必須加上 UI Mockups 區塊。
 
       ─── 步驟 3：依下表組合區塊 ───
@@ -263,7 +263,7 @@ artifacts:
       - design
 
 apply:
-  requires: [tasks]
+  requires: [proposal, specs, design, test-plan, tasks]
   tracks: tasks.md
   instruction: |
     Process every unchecked checkbox in tasks.md in order.
@@ -295,6 +295,10 @@ apply:
     1. Refactor without adding new behavior.
     2. Run the full test suite; all green required.
     3. Commit `refactor: <description>`; check off the box.
+
+    ─── After all tasks complete ───
+    - Run the full test suite one final time; everything must be green.
+    - Confirm every checkbox in tasks.md is checked.
 
     ─── Forbidden ───
     - Writing implementation before tests

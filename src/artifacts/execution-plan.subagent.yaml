@@ -15,6 +15,8 @@
         - Relevant spec.md section (the capability's requirement + scenarios)
         - Relevant design.md section (decisions / risks affecting this task)
         - Explicit "not given" list (other tasks, unrelated capability specs)
+        - Worktree path from environment.md (only if this schema includes an
+          environment artifact — worktree variants)
       - **Roles**: three roles, each with default_model + rationale + review checklist:
         - **Implementer** (default_model: `haiku`); list upgrade triggers
           (`upgrade_to_sonnet_when`, `upgrade_to_opus_when`).
@@ -34,7 +36,9 @@
 
       Model selection principle:
       use the least powerful model that can handle each role to conserve cost
-      and increase speed.
+      and increase speed. Model names (haiku / sonnet / opus) are Claude tiers
+      used as examples; on hosts without them, map to the closest
+      fast / balanced / strongest equivalents.
 
       This file is read on every task during apply to dispatch subagents and
       assign models; keep it accurate after any task is added or removed.

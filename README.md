@@ -60,8 +60,7 @@ build/          ← 產生物；OpenSpec 直接可用，安裝時從這裡複製
 - `build/` 每個 `schema.yaml` 頂端有 `# GENERATED FILE` 標記；請勿手改。
 - `node src/build.mjs --check` 檢查 `build/` 是否與 `src/` 同步（未同步則 exit 1），
   可在 commit 前 / CI 使用。
-- 產生的 6 份與手寫版 **逐字一致**：唯一差異是頂端 2 行 GENERATED 註解，
-  而 YAML 註解會被 OpenSpec parser 忽略，不影響行為。
+- 頂端的 `# GENERATED FILE` 是 YAML 註解，OpenSpec parser 會忽略，不影響行為。
 
 ### 哪些被去重、哪些每變體保留
 
@@ -72,6 +71,7 @@ build/          ← 產生物；OpenSpec 直接可用，安裝時從這裡複製
 | proposal / specs / design / test-plan / overview 的 artifact 區塊 | `src/artifacts/` 各 1 份（6 變體共用） |
 | tasks 區塊 | 共用主體 1 份；`requires` 由 build 依模式補上 `execution-plan` |
 | environment 區塊 + template | worktree 專用，各 1 份 |
+| apply 的 requires / tracks 標頭 | 由 build 依變體組成（`applyPrefix()`：除 overview 外全列；worktree 加 environment） |
 | **apply body** | **每變體 1 份**。worktree 版把「共用同一個 worktree」的意識織入 Step 0、dispatch context、Forbidden 三處，屬各變體專屬，不宜機械拼接 |
 | header（name / description） | 每變體 1 份（內容本就各異） |
 
@@ -133,6 +133,12 @@ environment（worktree 專用）直接依賴：proposal，獨立於上圖之外
 注意：`tasks.requires` 同時列出 `specs`、`test-plan`、`design`，與原版 `spec-driven`
 的依賴語意對齊（即便 `test-plan` 已 require `specs`，仍顯式列出以避免 resolver
 的傳遞依賴假設不同）。subagent / parallel 變體另外顯式加入 `execution-plan`。
+
+`apply.requires` 則列出**除 `overview` 外的所有 artifacts**（由 build 依變體組成）：
+overview 是純人類讀物，不 gate apply；其餘 artifact 都是 apply.instruction 會讀取
+或寫入的檔案。特別是 worktree 變體的 `environment`——它不在 `tasks` 的依賴鏈上
+（獨立掛在 proposal 下），若不列入 `apply.requires`，手動亂序時
+`openspec instructions apply` 不會擋下「environment.md 還不存在就開始 Step 0」的情況。
 
 ## 變體差異對照
 
@@ -197,6 +203,9 @@ environment（worktree 專用）直接依賴：proposal，獨立於上圖之外
   `commit ... (RED)` / `(GREEN)` / `(REFACTOR)` 預期 host agent
   （Claude Code、Codex 等）有權限執行 `git commit`。若 agent 無此權限，
   commit 動作會退化為 in-memory 步驟；test-first 的順序紀律仍應遵守。
+- **模型名稱以 Claude tier 為例**：execution-plan 的 haiku / sonnet / opus
+  是範例名稱；instruction 與 template 已註明在沒有這些模型的 host 上，
+  對應到等級相近的 fast / balanced / strongest 模型即可。
 - **overview 為 required artifact**：列在 `artifacts:` 內即 OpenSpec resolver
   會把它視為必須產出的節點。small 規模也至少需輸出 Scope + What Changes 兩區塊。
 - **與原版 schema 不可混用**：同一 change 不要中途切換 `spec-driven` 與

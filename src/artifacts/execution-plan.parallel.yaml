@@ -29,8 +29,8 @@
         - `continue others`: mark the failed task BLOCKED; let other tasks
           continue; revisit at batch end.
         - `rollback all`: revert every commit in the batch; redispatch the entire batch.
-        Default is `continue others` (matches dispatching-parallel-agents'
-        spirit — independent failures should not block independent progress).
+        Default is `continue others` — independent failures should not block
+        independent progress.
       - **Integration verification (batch-end)**: list the steps applied at
         each batch's end (read summaries; conflict check; full test suite;
         spot check 1-2 diffs).
@@ -39,6 +39,10 @@
       GREEN must pass test), batch-level integration verification, and the
       final reviewer at the end of all batches. Per-task review is by design
       absent.
+
+      Model names (haiku / sonnet / opus) are Claude tiers used as examples;
+      on hosts without them, map to the closest fast / balanced / strongest
+      equivalents.
 
       This file is read at the start of every batch during apply; keep the
       Independence proof in sync with tasks.md.
