@@ -59,7 +59,7 @@ build/          ← 產生物；OpenSpec 直接可用，安裝時從這裡複製
 - **改共用內容 → 只改 `src/` 一處 → `node src/build.mjs` → 6 個變體同步更新。**
 - `build/` 每個 `schema.yaml` 頂端有 `# GENERATED FILE` 標記；請勿手改。
 - `node src/build.mjs --check` 檢查 `build/` 是否與 `src/` 同步（未同步則 exit 1），
-  可在 commit 前 / CI 使用。
+  也會偵測 `build/` 頂層的孤兒資料夾與散檔；可在 commit 前 / CI 使用。
 - 頂端的 `# GENERATED FILE` 是 YAML 註解，OpenSpec parser 會忽略，不影響行為。
 
 ### 哪些被去重、哪些每變體保留

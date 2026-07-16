@@ -147,6 +147,15 @@ function doCheck() {
       if (!expected.has(rel)) problems.push(`orphan:   ${v.name}/${rel}`);
     }
   }
+  // build/ 頂層不該有 VARIANTS 以外的東西(已移除的變體、手動加入的散檔)。
+  if (fs.existsSync(BUILD)) {
+    const expectedDirs = new Set(VARIANTS.map((v) => v.name));
+    for (const entry of fs.readdirSync(BUILD, { withFileTypes: true })) {
+      if (!expectedDirs.has(entry.name)) {
+        problems.push(`orphan:   ${entry.name}${entry.isDirectory() ? '/' : ''}`);
+      }
+    }
+  }
   if (problems.length) {
     console.error(`✗ build/ 與 src/ 不同步(${problems.length} 項):`);
     for (const p of problems) console.error('  - ' + p);
