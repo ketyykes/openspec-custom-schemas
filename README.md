@@ -1,6 +1,6 @@
 # OpenSpec Custom Schemas — TDD Family
 
-> **客製版本說明**：這個資料夾收錄 6 個基於 OpenSpec `spec-driven` 的客製 schemas。
+> **客製版本說明**：這個資料夾收錄 8 個基於 OpenSpec `spec-driven` 的客製 schemas。
 > 與原版相比的主要結構分岔：
 > - 新增 `test-plan` artifact（RED 階段承諾書）
 > - 新增 `overview` artifact（純人類視覺版）
@@ -10,11 +10,11 @@
 > 與原版的相容性：仍使用 OpenSpec 標準的 artifact-graph 機制；
 > 只是在 schema 內透過 instruction 強化紀律，不改動 CLI 行為。
 
-這個資料夾收錄 6 個自製的 OpenSpec custom schemas。它們把四項核心開發紀律
+這個資料夾收錄 8 個自製的 OpenSpec custom schemas。它們把四項核心開發紀律
 （test-driven-development、subagent-driven-development、parallel-agent dispatch、
 git-worktree 隔離）**內嵌**進 OpenSpec 的 artifact + apply.instruction，讓任何
-環境不需額外外掛也能保有同樣紀律。另外每個 schema 都產出一份 `overview.md` 作為
-人類友善的 ASCII 視覺版（含前端需求時自動繪製 UI mockups）。
+環境不需額外外掛也能保有同樣紀律。另外除 lite 變體外，每個 schema 都產出
+一份 `overview.md` 作為人類友善的 ASCII 視覺版（含前端需求時自動繪製 UI mockups）。
 
 ## 家族成員
 
@@ -26,11 +26,13 @@ git-worktree 隔離）**內嵌**進 OpenSpec 的 artifact + apply.instruction，
 | `tdd-subagent-worktree`    | 每 task 派 subagent + 兩階段審查 | ✅ |
 | `tdd-parallel`             | 多 subagent 並行批次 | ❌ |
 | `tdd-parallel-worktree`    | 多 subagent 並行批次 | ✅ |
+| `tdd-sequential-lite`          | 單 agent 順序（精簡：無 design / overview） | ❌ |
+| `tdd-sequential-lite-worktree` | 單 agent 順序（精簡：無 design / overview） | ✅ |
 
 ## 架構：單一來源 + 產生器（`src/` → `build/`）
 
-6 個變體高度重複：6 份共用 template 完全相同、5 個 artifact 的 `instruction`
-逐字一致。但 **OpenSpec 執行期沒有任何去重機制**：schema 沒有繼承 / overlay，
+8 個變體高度重複：共用 template 完全相同、多數 artifact 的 `instruction`
+逐字一致（lean 變體僅做定向字串替換）。但 **OpenSpec 執行期沒有任何去重機制**：schema 沒有繼承 / overlay，
 template loader 也不會 fallback 到共用目錄（`instruction-loader.ts` 的
 `loadTemplate` 只讀該 schema 自己的 `templates/`，找不到就直接報錯）。因此去重
 只能在「撰寫層」做，再編譯成 N 個自足資料夾。
@@ -39,9 +41,9 @@ template loader 也不會 fallback 到共用目錄（`instruction-loader.ts` 的
 
 ```
 src/            ← 唯一要維護的來源（去重後）
-  variants/     每個變體的檔頭（name / version / description），6 份；內容本就各異
+  variants/     每個變體的檔頭（name / version / description），8 份；內容本就各異
   artifacts/    artifact 區塊，只存唯一版本：
-                  proposal / specs / design / test-plan / overview（6 變體共用，各 1 份）
+                  proposal / specs / design / test-plan / overview（完整變體共用，各 1 份；lean 變體由 build 定向替換拿掉 design / overview 引用）
                   tasks.yaml（共用主體；requires 由 build 依模式補齊）
                   execution-plan.subagent / execution-plan.parallel
                   environment（worktree 專用）
@@ -51,12 +53,12 @@ src/            ← 唯一要維護的來源（去重後）
                 建議 Node.js ≥ 20，與 OpenSpec 本身的執行環境要求一致）
 
 build/          ← 產生物；OpenSpec 直接可用，安裝時從這裡複製（請勿手改）
-  tdd-sequential/ … tdd-parallel-worktree/
+  tdd-sequential/ … tdd-parallel-worktree/ … tdd-sequential-lite-worktree/
 ```
 
 工作流：
 
-- **改共用內容 → 只改 `src/` 一處 → `node src/build.mjs` → 6 個變體同步更新。**
+- **改共用內容 → 只改 `src/` 一處 → `node src/build.mjs` → 8 個變體同步更新。**
 - `build/` 每個 `schema.yaml` 頂端有 `# GENERATED FILE` 標記；請勿手改。
 - `node src/build.mjs --check` 檢查 `build/` 是否與 `src/` 同步（未同步則 exit 1），
   也會偵測 `build/` 頂層的孤兒資料夾與散檔；可在 commit 前 / CI 使用。
@@ -66,14 +68,15 @@ build/          ← 產生物；OpenSpec 直接可用，安裝時從這裡複製
 
 | 內容 | 處理 |
 |------|------|
-| 6 份共用 template | `src/templates/` 各 1 份 |
+| 6 份共用 template | `src/templates/` 各 1 份（lean 變體只輸出其中 4 份） |
 | execution-plan template（subagent / parallel 兩版） | 各 1 份；輸出時一律命名 `execution-plan.md` |
-| proposal / specs / design / test-plan / overview 的 artifact 區塊 | `src/artifacts/` 各 1 份（6 變體共用） |
+| proposal / specs / design / test-plan / overview 的 artifact 區塊 | `src/artifacts/` 各 1 份（完整變體共用；lean 變體由 build 定向替換拿掉 design / overview 引用） |
 | tasks 區塊 | 共用主體 1 份；`requires` 由 build 依模式補上 `execution-plan` |
 | environment 區塊 + template | worktree 專用，各 1 份 |
 | apply 的 requires / tracks 標頭 | 由 build 依變體組成（`applyPrefix()`：除 overview 外全列；worktree 加 environment） |
 | **apply body** | **每變體 1 份**。worktree 版把「共用同一個 worktree」的意識織入 Step 0、dispatch context、Forbidden 三處，屬各變體專屬，不宜機械拼接 |
 | header（name / description） | 每變體 1 份（內容本就各異） |
+| lite（lean）變體的 design / overview 拔除 | build 以 `lean` 旗標條件式略過區塊與 templates，並定向替換 proposal / specs / spec.md 中的引用 |
 
 ### 如何新增一個新變體
 
@@ -89,9 +92,13 @@ build/          ← 產生物；OpenSpec 直接可用，安裝時從這裡複製
 6. 手動更新本 README 最上方的「家族成員」與「變體差異對照」兩個表格——
    這兩張表是人工維護，不是 `build.mjs` 的產生物。
 
+若要新增「精簡（lean）」變體：在 `VARIANTS` 那筆加上 `lean: true`（目前僅支援
+`mode: 'sequential'`）。build 會略過 design / overview 的 artifact 區塊與 templates，
+並定向替換來源中對兩者的引用；apply body 請勿引用 design.md / overview.md。
+
 ## 完成狀態
 
-6/6 變體皆由 `src/build.mjs` 產生到 `build/`：
+8/8 變體皆由 `src/build.mjs` 產生到 `build/`：
 
 - ✅ `tdd-sequential` — 純 TDD 順序
 - ✅ `tdd-sequential-worktree` — + worktree 隔離（含 environment.md）
@@ -99,6 +106,8 @@ build/          ← 產生物；OpenSpec 直接可用，安裝時從這裡複製
 - ✅ `tdd-subagent-worktree` — subagent + worktree（含 environment.md + execution-plan.md）
 - ✅ `tdd-parallel` — + 批次並行派發（含 execution-plan.md，無兩階段審查）
 - ✅ `tdd-parallel-worktree` — parallel + worktree（含 environment.md + execution-plan.md）
+- ✅ `tdd-sequential-lite` — 精簡版：無 design / overview
+- ✅ `tdd-sequential-lite-worktree` — 精簡版 + worktree 隔離（含 environment.md）
 
 > 日常維護請以 `src/` 為準，改完跑 `node src/build.mjs` 同步到 `build/`。
 
@@ -117,6 +126,10 @@ environment（worktree 專用）直接依賴：proposal，獨立於上圖之外
 * execution-plan 僅 subagent / parallel 變體存在；sequential 變體沒有這個節點。
 ```
 
+lite 變體（`tdd-sequential-lite[-worktree]`）沒有 design 與 overview：
+依賴鏈為 proposal ─► specs ─► test-plan；tasks 直接依賴 specs + test-plan；
+`apply.requires` 為 [proposal, specs, test-plan, tasks]（worktree 版另加 environment）。
+
 > 圖只畫單一父節點的分支；`tasks` 有 3～4 個直接依賴（見下方說明），
 > 無法在樹狀圖中乾淨表示多重父節點，因此另外列出，避免像舊版那樣
 > 用共用垂直線畫出「design → test-plan」「overview → tasks」這類實際不存在的邊。
@@ -133,6 +146,7 @@ environment（worktree 專用）直接依賴：proposal，獨立於上圖之外
 注意：`tasks.requires` 同時列出 `specs`、`test-plan`、`design`，與原版 `spec-driven`
 的依賴語意對齊（即便 `test-plan` 已 require `specs`，仍顯式列出以避免 resolver
 的傳遞依賴假設不同）。subagent / parallel 變體另外顯式加入 `execution-plan`。
+lite 變體無 design，故只列 `specs`、`test-plan`。
 
 `apply.requires` 則列出**除 `overview` 外的所有 artifacts**（由 build 依變體組成）：
 overview 是純人類讀物，不 gate apply；其餘 artifact 都是 apply.instruction 會讀取
@@ -142,21 +156,23 @@ overview 是純人類讀物，不 gate apply；其餘 artifact 都是 apply.inst
 
 ## 變體差異對照
 
-| Artifact | sequential | sequential-worktree | subagent | subagent-worktree | parallel | parallel-worktree |
-|----------|:-:|:-:|:-:|:-:|:-:|:-:|
-| `proposal` | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
-| `specs` | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
-| `design` | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
-| `test-plan` | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
-| `overview` | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
-| `tasks` | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
-| `execution-plan` | — | — | ✅ | ✅ | ✅ | ✅ |
-| `environment` | — | ✅ | — | ✅ | — | ✅ |
+| Artifact | sequential | sequential-worktree | subagent | subagent-worktree | parallel | parallel-worktree | sequential-lite | sequential-lite-worktree |
+|----------|:-:|:-:|:-:|:-:|:-:|:-:|:-:|:-:|
+| `proposal` | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
+| `specs` | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
+| `design` | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | — | — |
+| `test-plan` | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
+| `overview` | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | — | — |
+| `tasks` | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
+| `execution-plan` | — | — | ✅ | ✅ | ✅ | ✅ | — | — |
+| `environment` | — | ✅ | — | ✅ | — | ✅ | — | ✅ |
 
 設計理由：
 - **sequential 不需要 `execution-plan`**：只有一條時間軸，沒有 dispatch 決策要記錄。
 - **worktree 變體一律加 `environment.md`**：分支名、設定指令、驗證步驟、teardown。
   不允許 opt-out（要 opt-out 就選非 worktree 變體）。
+- **lite 變體拔除 `design` / `overview`**：小型改動不需要獨立設計文件與視覺版；
+  需要完整紀錄時改用非 lite 變體。
 
 ## 安裝到專案
 
@@ -208,6 +224,7 @@ overview 是純人類讀物，不 gate apply；其餘 artifact 都是 apply.inst
   對應到等級相近的 fast / balanced / strongest 模型即可。
 - **overview 為 required artifact**：列在 `artifacts:` 內即 OpenSpec resolver
   會把它視為必須產出的節點。small 規模也至少需輸出 Scope + What Changes 兩區塊。
+  （lite 變體不含 overview，自然不受此限。）
 - **與原版 schema 不可混用**：同一 change 不要中途切換 `spec-driven` 與
   `tdd-*` schema —— 兩者 artifact 集合不同，會造成 `openspec status` 誤判。
 - **`build/` 是產生物**：不要直接手改；要改請改 `src/` 再 `node src/build.mjs`。

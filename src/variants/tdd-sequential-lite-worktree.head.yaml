@@ -1,0 +1,20 @@
+name: tdd-sequential-lite-worktree
+version: 1
+description: |
+  Lean TDD sequential workflow with isolated git worktree:
+  proposal / specs / test-plan / tasks + environment only
+  (no design.md, no overview.md). Single-agent, in-order execution
+  inside a dedicated worktree branch. Suitable for small changes that
+  must not contaminate the current working tree, where a separate
+  design document and a visual overview would be overhead.
+
+  Inlined disciplines (self-contained; no external plugin required):
+    - Test-first commitment via test-plan.md
+    - RED -> GREEN -> REFACTOR enforcement in apply.instruction
+    - Isolated worktree per change (git-worktree isolation discipline);
+      environment.md records branch, setup, baseline, teardown
+
+  Output language is controlled by openspec/config.yaml `context:`
+  (see OpenSpec docs/multi-language.md), not by this schema.
+
+artifacts:

@@ -1,0 +1,16 @@
+name: tdd-sequential-lite
+version: 1
+description: |
+  Lean TDD sequential workflow: proposal / specs / test-plan / tasks only
+  (no design.md, no overview.md). Single-agent, in-order execution.
+  Suitable for small changes where a separate design document and a
+  visual overview would be overhead rather than help.
+
+  Inlined disciplines (self-contained; no external plugin required):
+    - Test-first commitment via test-plan.md
+    - RED -> GREEN -> REFACTOR enforcement in apply.instruction
+
+  Output language is controlled by openspec/config.yaml `context:`
+  (see OpenSpec docs/multi-language.md), not by this schema.
+
+artifacts:

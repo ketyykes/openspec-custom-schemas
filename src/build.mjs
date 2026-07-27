@@ -1,4 +1,4 @@
-// build.mjs — 把 src/ 的去重素材組裝成 6 個自足的 OpenSpec schema 資料夾到 build/。
+// build.mjs — 把 src/ 的去重素材組裝成 8 個自足的 OpenSpec schema 資料夾到 build/。
 //
 // 用法:
 //   node src/build.mjs           產生 build/(會先清空 build/ 再重建)
@@ -23,25 +23,32 @@ const BUILD = path.join(ROOT, 'build');
 // 必須在這裡列出才會被 `openspec instructions apply` 的 blocked 檢查涵蓋)。
 // 順序與 schema 內 artifacts 的宣告順序一致。
 function applyPrefix(v) {
-  const requires = ['proposal', 'specs', 'design', 'test-plan'];
+  const requires = ['proposal', 'specs'];
+  if (!v.lean) requires.push('design'); // lean 變體沒有 design artifact
+  requires.push('test-plan');
   if (v.mode !== 'sequential') requires.push('execution-plan');
   requires.push('tasks');
   if (v.worktree) requires.push('environment');
   return `apply:\n  requires: [${requires.join(', ')}]\n  tracks: tasks.md\n  instruction: |\n`;
 }
 
-// 6 個變體 = 執行模式 {sequential, subagent, parallel} × worktree {false, true}。
+// 8 個變體 = 執行模式 {sequential, subagent, parallel} × worktree {false, true}
+// + 2 個 lean 變體(去掉 design / overview,只留 proposal / specs / test-plan / tasks;
+//   lean 目前僅支援 sequential 模式)。
 const VARIANTS = [
-  { name: 'tdd-sequential',          mode: 'sequential', worktree: false },
-  { name: 'tdd-sequential-worktree', mode: 'sequential', worktree: true  },
-  { name: 'tdd-subagent',            mode: 'subagent',   worktree: false },
-  { name: 'tdd-subagent-worktree',   mode: 'subagent',   worktree: true  },
-  { name: 'tdd-parallel',            mode: 'parallel',   worktree: false },
-  { name: 'tdd-parallel-worktree',   mode: 'parallel',   worktree: true  },
+  { name: 'tdd-sequential',               mode: 'sequential', worktree: false },
+  { name: 'tdd-sequential-worktree',      mode: 'sequential', worktree: true  },
+  { name: 'tdd-subagent',                 mode: 'subagent',   worktree: false },
+  { name: 'tdd-subagent-worktree',        mode: 'subagent',   worktree: true  },
+  { name: 'tdd-parallel',                 mode: 'parallel',   worktree: false },
+  { name: 'tdd-parallel-worktree',        mode: 'parallel',   worktree: true  },
+  { name: 'tdd-sequential-lite',          mode: 'sequential', worktree: false, lean: true },
+  { name: 'tdd-sequential-lite-worktree', mode: 'sequential', worktree: true,  lean: true },
 ];
 
-// 每個變體都有的 6 份共用 template。
+// 完整變體都有的 6 份共用 template;lean 變體只輸出其中 4 份(無 design / overview)。
 const SHARED_TEMPLATES = ['proposal.md', 'spec.md', 'design.md', 'test-plan.md', 'overview.md', 'tasks.md'];
+const LEAN_TEMPLATES = ['proposal.md', 'spec.md', 'test-plan.md', 'tasks.md'];
 
 // 讀取來源片段;片段以純文字串接組成 schema.yaml,因此必須以換行結尾,
 // 否則會與下一個片段黏行,產出壞掉的 YAML。
@@ -55,13 +62,26 @@ function read(rel) {
 
 // 產生檔頂註解:標明此檔為產生物、來源與重建方式。OpenSpec 的 YAML parser 會忽略註解。
 function marker(v) {
+  const leanTag = v.lean ? ', lean=true' : ''; // 只有 lean 變體多印,既有變體產出逐字節不變
   return '# GENERATED FILE — do not edit. Source of truth: openspec-custom-schemas/src/\n'
-       + `# Rebuild: node src/build.mjs   |   Variant: ${v.name} (mode=${v.mode}, worktree=${v.worktree})\n`;
+       + `# Rebuild: node src/build.mjs   |   Variant: ${v.name} (mode=${v.mode}, worktree=${v.worktree}${leanTag})\n`;
+}
+
+// lean 專用:對來源片段做定向字串替換,拿掉對 design.md / overview.md 的引用。
+// 找不到目標字串就 throw,避免來源改寫後替換靜默失效、產出殘留失效引用。
+function leanReplace(content, from, to, srcName) {
+  if (!content.includes(from)) {
+    throw new Error(`lean 替換目標不存在(來源可能已改寫,請同步更新 leanReplace 呼叫): src/${srcName}`);
+  }
+  return content.replace(from, to);
 }
 
 // 組出某變體的 schema.yaml 完整內容(含 GENERATED 標記)。
 function buildSchema(v) {
   const nonSeq = v.mode !== 'sequential';
+  if (v.lean && nonSeq) {
+    throw new Error(`lean 目前僅支援 sequential 模式(execution-plan 與 lean 的互動未定義): ${v.name}`);
+  }
   const head = read(`variants/${v.name}.head.yaml`); // name / version / description / 'artifacts:'
   if (!head.endsWith('artifacts:\n')) {
     throw new Error(`head 必須以 'artifacts:' 收尾,否則串接出壞 YAML: src/variants/${v.name}.head.yaml`);
@@ -74,18 +94,40 @@ function buildSchema(v) {
   if (!applyBody.startsWith('    ')) {
     throw new Error(`apply body 首行必須縮排 4 空格(YAML block scalar): src/apply/${v.name}.txt`);
   }
+  let proposal = read('artifacts/proposal.yaml');
+  let specs = read('artifacts/specs.yaml');
+  if (v.lean) {
+    // lean 沒有 design / overview,instruction 內對它們的引用必須一併拿掉
+    proposal = leanReplace(
+      proposal,
+      'Keep it 1-2 pages. The "how" belongs in design.md, not here.',
+      'Keep it 1-2 pages. Implementation details do not belong here.',
+      'artifacts/proposal.yaml'
+    );
+    specs = leanReplace(
+      specs,
+      '      ⚠️ Do NOT embed ASCII diagrams or visualizations in spec.md.\n'
+      + '      All visuals belong in overview.md. spec.md must stay as pure requirement\n'
+      + '      language so the validator can parse it correctly.\n',
+      '      ⚠️ Do NOT embed ASCII diagrams or visualizations in spec.md.\n'
+      + '      spec.md must stay as pure requirement language so the validator\n'
+      + '      can parse it correctly.\n',
+      'artifacts/specs.yaml'
+    );
+  }
   let s = marker(v);
   s += head;
-  s += read('artifacts/proposal.yaml');
-  s += read('artifacts/specs.yaml');
-  s += read('artifacts/design.yaml');
+  s += proposal;
+  s += specs;
+  if (!v.lean) s += read('artifacts/design.yaml');
   s += read('artifacts/test-plan.yaml');
-  s += read('artifacts/overview.yaml');
+  if (!v.lean) s += read('artifacts/overview.yaml');
   if (nonSeq) s += read(`artifacts/execution-plan.${v.mode}.yaml`); // 非 sequential 才有
   s += tasks; // 結尾為 '    requires:\n',以下依模式補上相依項
   s += '      - specs\n      - test-plan\n';
   if (nonSeq) s += '      - execution-plan\n';
-  s += '      - design\n\n';
+  if (!v.lean) s += '      - design\n';
+  s += '\n';
   if (v.worktree) s += read('artifacts/environment.yaml'); // worktree 才有,放 tasks 之後
   s += applyPrefix(v);
   s += applyBody; // apply body:各變體專屬
@@ -95,7 +137,16 @@ function buildSchema(v) {
 // 組出某變體要輸出的所有檔案:{ 相對路徑(用 '/') -> 內容字串 }。
 function buildFiles(v) {
   const files = { 'schema.yaml': buildSchema(v) };
-  for (const t of SHARED_TEMPLATES) files[`templates/${t}`] = read(`templates/${t}`);
+  for (const t of (v.lean ? LEAN_TEMPLATES : SHARED_TEMPLATES)) files[`templates/${t}`] = read(`templates/${t}`);
+  if (v.lean) {
+    // spec.md template 的註解引用 overview.md,lean 版一併拿掉
+    files['templates/spec.md'] = leanReplace(
+      files['templates/spec.md'],
+      'Do NOT embed ASCII diagrams or visualizations here; all visuals go to overview.md.',
+      'Do NOT embed ASCII diagrams or visualizations here; keep it pure requirement language.',
+      'templates/spec.md'
+    );
+  }
   if (v.worktree) files['templates/environment.md'] = read('templates/environment.md');
   if (v.mode !== 'sequential') {
     // src/ 內以 execution-plan.<mode>.md 區分,輸出時一律命名為 execution-plan.md
