@@ -15,7 +15,7 @@ description: |
     - Per-role model selection recorded in execution-plan.md
     - Isolated worktree per change; environment.md records branch, setup,
       baseline, teardown; all dispatched subagents share the same worktree
-    - Sized ASCII overview (incl. UI mockups for frontend work)
+    - Sized ASCII overview (incl. UI mockups, DB diagrams, sequence/migration flows)
 
   Output language is controlled by openspec/config.yaml `context:`
   (see OpenSpec docs/multi-language.md), not by this schema.

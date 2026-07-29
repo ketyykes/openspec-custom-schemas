@@ -13,7 +13,7 @@ description: |
     - Batch-end integration verification (summaries + full suite + spot check)
     - Per-implementer model assignment recorded in execution-plan.md
     - Final reviewer pass over all batches when apply completes
-    - Sized ASCII overview (incl. UI mockups for frontend work)
+    - Sized ASCII overview (incl. UI mockups, DB diagrams, sequence/migration flows)
 
   Output language is controlled by openspec/config.yaml `context:`
   (see OpenSpec docs/multi-language.md), not by this schema.

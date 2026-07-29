@@ -15,7 +15,7 @@ description: |
     - Batch-end integration verification (summaries + full suite + spot check)
     - Per-implementer model assignment recorded in execution-plan.md
     - Final reviewer pass over all batches when apply completes
-    - Sized ASCII overview (incl. UI mockups for frontend work)
+    - Sized ASCII overview (incl. UI mockups, DB diagrams, sequence/migration flows)
 
   Output language is controlled by openspec/config.yaml `context:`
   (see OpenSpec docs/multi-language.md), not by this schema.
@@ -157,9 +157,16 @@ artifacts:
       - **medium**：影響 2-3 capabilities、tasks 9-20、或新增一個模組
       - **large**：影響 ≥4 capabilities、tasks >20、或跨服務 / 含資料遷移
 
-      ─── 步驟 2：判定是否含前端需求 ───
-      只要 specs 內有任一 requirement 描述使用者介面、互動、版面、視覺狀態，
-      即視為「含前端需求」，必須加上 UI Mockups 區塊。
+      ─── 步驟 2：判定條件式區塊（逐一檢查，命中就必加，不分規模）───
+      - **前端需求 → UI Mockups**：specs 內有任一 requirement 描述
+        使用者介面、互動、版面、視覺狀態。
+      - **資料庫結構 → Data Model**：涉及新 table、欄位增刪改、索引、
+        關聯變更或任何 schema migration。
+      - **資料遷移 → Data Migration**：除 schema 變更外，還需搬移或
+        轉換既有資料（backfill、格式轉換、拆表併表）。
+      - **跨元件流程 → Sequence Diagram**：流程含非同步任務、webhook、
+        排程、多服務協作，或順序敏感的多步互動；
+        單純同步 CRUD（前端→API→DB 一來一回）不算。
 
       ─── 步驟 3：依下表組合區塊 ───
 
@@ -168,7 +175,10 @@ artifacts:
       | Scope            | ✅ | ✅ | ✅ | 永遠 |
       | What Changes     | ✅ | ✅ | ✅ | 永遠 |
       | UI Mockups       | (條件) | (條件) | (條件) | 含前端需求時 |
+      | Data Model       | (條件) | (條件) | (條件) | 動到資料庫結構時 |
+      | Data Migration   | (條件) | (條件) | (條件) | 含資料遷移時 |
       | Architecture     | — | ✅ | ✅ | medium 起 |
+      | Sequence Diagram | (條件) | (條件) | (條件) | 含跨元件流程時 |
       | Task Tree        | — | — | ✅ | large 起 |
       | Cross-Cutting Impact | — | — | ✅ | large 起 |
 
@@ -177,7 +187,8 @@ artifacts:
       ## Scope
         - 兩三句白話描述
         - 規模判定結果（small / medium / large）+ 一句理由
-        - 是否含前端需求 + 一句理由
+        - 各條件式區塊（前端 / DB 結構 / 資料遷移 / 跨元件流程）
+          的判定結果 + 各一句理由
 
       ## What Changes
         - 條列（同 proposal 的 What Changes，但更精簡）
@@ -203,9 +214,38 @@ artifacts:
         - 每個關鍵互動觸發的 state（modal、disabled、error、loading）
         - 多 state 用 === State N === 分區、用 │ ▼ 表示觸發順序
 
+      ## Data Model（動到資料庫結構時）
+        Before / After 兩張 ``` ASCII 關聯圖：
+
+        ─── ASCII 關聯圖繪製慣例 ───
+        - table：┌─ table_name ─┐ 邊框，欄位一行一個
+        - 主鍵後綴 PK、外鍵後綴 FK
+        - 關聯線：1───1、1───N、N───M（基數標在線的兩端）
+        - 範圍：受影響 table 展開全部欄位；與其有直接 FK 關聯的鄰居
+          table 只畫名稱框（欄位以 (…) 代替），不再向外擴一層
+        - === Before === / === After === 分區；
+          純新增 table 且無既有關聯時可只畫 After
+
+      ## Data Migration（含資料遷移時）
+        一個 ``` 區塊，依序四段：
+        - === 資料形狀 Before ===：遷移前欄位 / 格式（可附一筆範例資料）
+        - === 遷移步驟 ===：編號步驟，標明批次策略與雙寫 / 切讀時機
+        - === 資料形狀 After ===：遷移後欄位 / 格式
+        - === Rollback ===：每個步驟可否回滾、如何回滾
+
       ## Architecture（medium 起）
         - 一個 ``` ASCII 區塊：元件 / 資料流 / 依賴關係
         - 用方塊 + 箭頭表示模組與資料流向
+
+      ## Sequence Diagram（含跨元件流程時）
+        一個 ``` ASCII 時序圖：
+
+        ─── ASCII 時序圖繪製慣例 ───
+        - 參與者橫排在頂，底下接垂直生命線 │
+        - 時間由上而下
+        - 同步請求：──►；回應：◄──；非同步 / 事件：╌╌►
+        - 訊息標籤寫在箭頭同行或上一行
+        - 只畫關鍵路徑與失敗分支，不畫逐行程式細節
 
       ## Task Tree（large 起）
         - 一個 ``` ASCII 區塊：tasks.md 的依賴樹

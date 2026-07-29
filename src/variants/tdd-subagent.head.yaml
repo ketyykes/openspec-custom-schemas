@@ -12,7 +12,7 @@ description: |
     - Two-stage review per task (spec compliance → code quality), with fix-loops
     - Final cross-task integration review after all tasks complete
     - Per-role model selection recorded in execution-plan.md
-    - Sized ASCII overview (incl. UI mockups for frontend work)
+    - Sized ASCII overview (incl. UI mockups, DB diagrams, sequence/migration flows)
 
   Output language is controlled by openspec/config.yaml `context:`
   (see OpenSpec docs/multi-language.md), not by this schema.

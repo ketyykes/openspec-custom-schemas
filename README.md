@@ -14,7 +14,8 @@
 （test-driven-development、subagent-driven-development、parallel-agent dispatch、
 git-worktree 隔離）**內嵌**進 OpenSpec 的 artifact + apply.instruction，讓任何
 環境不需額外外掛也能保有同樣紀律。另外除 lite 變體外，每個 schema 都產出
-一份 `overview.md` 作為人類友善的 ASCII 視覺版（含前端需求時自動繪製 UI mockups）。
+一份 `overview.md` 作為人類友善的 ASCII 視覺版（依條件自動繪製 UI mockups、
+DB 關聯圖、時序圖與資料遷移流程）。
 
 ## 家族成員
 
@@ -140,7 +141,7 @@ lite 變體（`tdd-sequential-lite[-worktree]`）沒有 design 與 overview：
 | `specs/**/*.md`| WHAT — 需求 + Scenario（純文字）| 人 + apply + validator |
 | `design.md`    | HOW — 技術決策 | 人 + apply |
 | `test-plan.md` | RED 階段承諾書（測什麼、預期、為何先寫）| apply 反覆讀 |
-| `overview.md`  | ASCII 視覺版（含 UI mockups）| 純人類 |
+| `overview.md`  | ASCII 視覺版（UI mockups / DB 關聯圖 / 時序圖等條件式圖表）| 純人類 |
 | `tasks.md`     | RED / GREEN / REFACTOR checkbox 清單 | apply 追蹤進度 |
 
 注意：`tasks.requires` 同時列出 `specs`、`test-plan`、`design`，與原版 `spec-driven`
@@ -208,7 +209,9 @@ overview 是純人類讀物，不 gate apply；其餘 artifact 都是 apply.inst
 1. **紀律內嵌、自成一體**：所有紀律寫進 `instruction:` 與 `apply.instruction:`，不依賴任何外部外掛。
 2. **TDD 雙保險**：`test-plan.md` 作前置承諾，`apply.instruction` 強制 RED→GREEN→REFACTOR。
 3. **specs 保持純文字**：所有 ASCII 視覺集中到 `overview.md`，避免干擾 validator。
-4. **overview 依規模動態組合**：small / medium / large 命中不同區塊；含前端需求時加 UI Mockups。
+4. **overview 依規模與類型動態組合**：small / medium / large 命中不同區塊；另有四個
+   條件式區塊不分規模、命中就加 — 前端需求加 UI Mockups、動到 DB 結構加 Data Model
+   （Before/After 關聯圖）、含資料遷移加 Data Migration、含跨元件流程加 Sequence Diagram。
 5. **worktree 是 schema-level 決策，非 artifact opt-out**：避免「畫了 environment.md 但說不用 worktree」的歧義。
 6. **Schema instructions 英文，輸出語言由 config.yaml 控制**：見「安裝到專案」段。
 7. **來源去重、產生物自足**：維護改 `src/`，OpenSpec 吃 `build/`；兩者由 `build.mjs` 保持同步。
