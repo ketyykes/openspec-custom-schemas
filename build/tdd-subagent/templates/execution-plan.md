@@ -65,6 +65,19 @@ main conversation):
   - [ ] Readability?
 - **Never reviews**: whether the spec is right (Stage 1 already covered that)
 
+### Final Code Reviewer (integration)
+
+- **default_model**: `opus`
+- **rationale**: cross-task integration review has to hold the whole change
+  in view; the strongest model pays off here
+- **Review checklist**:
+  - [ ] Naming and patterns consistent across tasks?
+  - [ ] Duplicated logic introduced by separate tasks that should be unified?
+  - [ ] Does the combined diff stay within the proposal's scope?
+  - [ ] Full test suite green on the final state?
+- **Never reviews**: single-task spec compliance or quality details
+  (Stages 1-2 already covered those per task)
+
 ## Escalation
 
 - Implementer rejected by the same reviewer N times in a row (suggested N=3)

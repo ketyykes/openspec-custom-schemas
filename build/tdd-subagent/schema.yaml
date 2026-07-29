@@ -12,6 +12,7 @@ description: |
     - Test-first commitment via test-plan.md
     - RED -> GREEN -> REFACTOR enforcement inside each Implementer subagent
     - Two-stage review per task (spec compliance → code quality), with fix-loops
+    - Final cross-task integration review after all tasks complete
     - Per-role model selection recorded in execution-plan.md
     - Sized ASCII overview (incl. UI mockups for frontend work)
 
@@ -238,7 +239,7 @@ artifacts:
         - Explicit "not given" list (other tasks, unrelated capability specs)
         - Worktree path from environment.md (only if this schema includes an
           environment artifact — worktree variants)
-      - **Roles**: three roles, each with default_model + rationale + review checklist:
+      - **Roles**: four roles, each with default_model + rationale + review checklist:
         - **Implementer** (default_model: `haiku`); list upgrade triggers
           (`upgrade_to_sonnet_when`, `upgrade_to_opus_when`).
         - **Spec Reviewer (Stage 1)** (default_model: `sonnet`); reviews requirement
@@ -247,6 +248,11 @@ artifacts:
         - **Code-Quality Reviewer (Stage 2)** (default_model: `opus`); reviews idioms,
           duplication, edge cases, error handling, readability. Never re-litigates
           whether the spec is right.
+        - **Final Code Reviewer** (default_model: `opus`); after all tasks complete,
+          reviews the full set of commits for cross-task integration: naming/pattern
+          consistency across tasks, duplicated logic introduced by separate tasks,
+          combined diff staying within the proposal's scope. Never re-reviews
+          single-task details (Stages 1-2 covered those).
       - **Escalation**:
         - Implementer rejected by the same reviewer N times in a row (suggest N=3)
           → upgrade model, redispatch.
@@ -347,6 +353,10 @@ apply:
 
     ─── Per Task: Stage 1 — Spec Compliance Review ───
     4. Dispatch a fresh subagent as Spec Reviewer (model per execution-plan.md).
+       Required first action for the reviewer: restate the section headings of
+       the spec / test-plan excerpts it received; if they do not match the task
+       under review, report NEEDS_CONTEXT instead of reviewing (the orchestrator
+       reassembles the context and redispatches).
     5. Sole task: compare code against spec and test-plan; answer
        "does the code match the spec?"
        - Look at: requirement coverage, scope creep, RED → Scenario mapping.
@@ -356,6 +366,9 @@ apply:
 
     ─── Per Task: Stage 2 — Code Quality Review ───
     7. Dispatch a fresh subagent as Code-Quality Reviewer (model per execution-plan.md).
+       Same required first action as Stage 1: restate the received excerpt
+       headings; on mismatch with the task, report NEEDS_CONTEXT — reassemble
+       the context and redispatch.
     8. Sole task: review implementation quality.
        - Look at: naming, duplication, edge cases, error handling, readability,
          consistency with existing style.
@@ -370,9 +383,12 @@ apply:
     apply because no spec-visible behavior may change.
 
     ─── After all tasks complete ───
-    10. Dispatch a final Code Reviewer over the full set of commits to confirm
+    10. Dispatch a fresh subagent as Final Code Reviewer (model and checklist
+        per execution-plan.md) over the full set of commits to confirm
         cross-task integration is consistent.
-    11. All green → apply done.
+    11. ❌ Final review fails → Implementer (fresh subagent) fixes → back to
+        Step 10.
+        ✅ All green → apply done.
 
     ─── Forbidden ───
     - Dispatching multiple Implementer subagents in parallel (they will conflict)
