@@ -49,7 +49,7 @@ src/            ← 唯一要維護的來源（去重後）
                   execution-plan.subagent / execution-plan.parallel
                   environment（worktree 專用）
   apply/        apply body，每個變體各 1 份（各變體真正獨有的行為核心）
-  templates/    9 份唯一 template（原本 46 份的去重版）
+  templates/    9 份唯一 template（去重版；未去重時 8 個變體共 52 份實體檔）
   build.mjs     產生器（零依賴 Node ESM，僅用 fs/path/url 內建模組；
                 建議 Node.js ≥ 20，與 OpenSpec 本身的執行環境要求一致）
 
