@@ -34,8 +34,9 @@
        a final Reviewer over the whole change.
 
     ─── Forbidden ───
-    - Adding per-task two-stage review "for safety" (that belongs to tdd-subagent;
-      it violates the design intent of tdd-parallel)
+    - Adding per-task or per-group two-stage review "for safety" (staged
+      review belongs to tdd-subagent; it violates the design intent of
+      tdd-parallel)
     - Running batches in parallel (batches must be sequential)
     - Dispatching subagents before verifying the Independence proof
     - Skipping batch-end integration verification and moving to the next batch

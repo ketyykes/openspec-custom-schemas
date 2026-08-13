@@ -6,7 +6,7 @@ description: |
   TDD-disciplined workflow with batch-parallel subagent dispatch.
   Inlines a parallel-agent dispatch discipline: sequential batches,
   parallel Implementer subagents within each batch, batch-end integration
-  verification (no per-task reviewer roles, by design). No worktree isolation.
+  verification (no staged reviewer roles, by design). No worktree isolation.
 
   Inlined disciplines (self-contained; no external plugin required):
     - Test-first commitment via test-plan.md
@@ -269,7 +269,7 @@ artifacts:
       Create execution-plan.md to declare how Implementer subagents are
       dispatched in parallel batches. **Do NOT add Spec Reviewer or
       Code-Quality Reviewer sections — the parallel variant intentionally
-      omits per-task two-stage review by design.**
+      omits two-stage review by design.**
 
       Sections (in order):
       - **Mode**: must be `parallel-batches`.
@@ -399,8 +399,9 @@ apply:
        a final Reviewer over the whole change.
 
     ─── Forbidden ───
-    - Adding per-task two-stage review "for safety" (that belongs to tdd-subagent;
-      it violates the design intent of tdd-parallel)
+    - Adding per-task or per-group two-stage review "for safety" (staged
+      review belongs to tdd-subagent; it violates the design intent of
+      tdd-parallel)
     - Running batches in parallel (batches must be sequential)
     - Dispatching subagents before verifying the Independence proof
     - Skipping batch-end integration verification and moving to the next batch

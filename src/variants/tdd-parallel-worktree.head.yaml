@@ -5,7 +5,7 @@ description: |
   git worktree. Inlines parallel-agent dispatch and git-worktree isolation
   disciplines: sequential batches, parallel Implementer
   subagents within each batch, batch-end integration verification, all inside
-  a dedicated worktree branch. No per-task reviewer roles, by design.
+  a dedicated worktree branch. No staged reviewer roles, by design.
 
   Inlined disciplines (self-contained; no external plugin required):
     - Test-first commitment via test-plan.md
