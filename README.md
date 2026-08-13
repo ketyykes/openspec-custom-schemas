@@ -23,8 +23,8 @@ DB 關聯圖、時序圖與資料遷移流程）。
 |-------------|----------|:--------:|
 | `tdd-sequential`           | 單 agent 順序 | ❌ |
 | `tdd-sequential-worktree`  | 單 agent 順序 | ✅ |
-| `tdd-subagent`             | 每 task 派 subagent + 兩階段審查 | ❌ |
-| `tdd-subagent-worktree`    | 每 task 派 subagent + 兩階段審查 | ✅ |
+| `tdd-subagent`             | 每 task 派 subagent + 每 group 兩階段審查 | ❌ |
+| `tdd-subagent-worktree`    | 每 task 派 subagent + 每 group 兩階段審查 | ✅ |
 | `tdd-parallel`             | 多 subagent 並行批次 | ❌ |
 | `tdd-parallel-worktree`    | 多 subagent 並行批次 | ✅ |
 | `tdd-sequential-lite`          | 單 agent 順序（精簡：無 design / overview） | ❌ |
@@ -69,10 +69,10 @@ build/          ← 產生物；OpenSpec 直接可用，安裝時從這裡複製
 
 | 內容 | 處理 |
 |------|------|
-| 6 份共用 template | `src/templates/` 各 1 份（lean 變體只輸出其中 4 份） |
+| 6 份共用 template | `src/templates/` 各 1 份（lean 變體只輸出其中 4 份；subagent 變體的 tasks.md 由 build 定向加註審查單位） |
 | execution-plan template（subagent / parallel 兩版） | 各 1 份；輸出時一律命名 `execution-plan.md` |
 | proposal / specs / design / test-plan / overview 的 artifact 區塊 | `src/artifacts/` 各 1 份（完整變體共用；lean 變體由 build 定向替換拿掉 design / overview 引用） |
-| tasks 區塊 | 共用主體 1 份；`requires` 由 build 依模式補上 `execution-plan` |
+| tasks 區塊 | 共用主體 1 份；`requires` 由 build 依模式補上 `execution-plan`；subagent 模式由 build 定向插入群組審查規則 |
 | environment 區塊 + template | worktree 專用，各 1 份 |
 | apply 的 requires / tracks 標頭 | 由 build 依變體組成（`applyPrefix()`：除 overview 外全列；worktree 加 environment） |
 | **apply body** | **每變體 1 份**。worktree 版把「共用同一個 worktree」的意識織入 Step 0、dispatch context、Forbidden 三處，屬各變體專屬，不宜機械拼接 |
@@ -103,7 +103,7 @@ build/          ← 產生物；OpenSpec 直接可用，安裝時從這裡複製
 
 - ✅ `tdd-sequential` — 純 TDD 順序
 - ✅ `tdd-sequential-worktree` — + worktree 隔離（含 environment.md）
-- ✅ `tdd-subagent` — + subagent 派發 + 兩階段審查（含 execution-plan.md）
+- ✅ `tdd-subagent` — + subagent 派發 + 每 group 兩階段審查（含 execution-plan.md）
 - ✅ `tdd-subagent-worktree` — subagent + worktree（含 environment.md + execution-plan.md）
 - ✅ `tdd-parallel` — + 批次並行派發（含 execution-plan.md，無兩階段審查）
 - ✅ `tdd-parallel-worktree` — parallel + worktree（含 environment.md + execution-plan.md）

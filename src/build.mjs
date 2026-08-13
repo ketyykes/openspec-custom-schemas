@@ -67,11 +67,11 @@ function marker(v) {
        + `# Rebuild: node src/build.mjs   |   Variant: ${v.name} (mode=${v.mode}, worktree=${v.worktree}${leanTag})\n`;
 }
 
-// lean 專用:對來源片段做定向字串替換,拿掉對 design.md / overview.md 的引用。
+// 對來源片段做定向字串替換(lean 拔除引用 / subagent 插入群組審查規則等變體差異用)。
 // 找不到目標字串就 throw,避免來源改寫後替換靜默失效、產出殘留失效引用。
-function leanReplace(content, from, to, srcName) {
+function mustReplace(content, from, to, srcName) {
   if (!content.includes(from)) {
-    throw new Error(`lean 替換目標不存在(來源可能已改寫,請同步更新 leanReplace 呼叫): src/${srcName}`);
+    throw new Error(`替換目標不存在(來源可能已改寫,請同步更新 mustReplace 呼叫): src/${srcName}`);
   }
   return content.replace(from, to);
 }
@@ -86,9 +86,23 @@ function buildSchema(v) {
   if (!head.endsWith('artifacts:\n')) {
     throw new Error(`head 必須以 'artifacts:' 收尾,否則串接出壞 YAML: src/variants/${v.name}.head.yaml`);
   }
-  const tasks = read('artifacts/tasks.yaml');
+  let tasks = read('artifacts/tasks.yaml');
   if (!tasks.endsWith('    requires:\n')) {
     throw new Error(`tasks.yaml 必須以 '    requires:' 收尾,build 依此補相依項: src/artifacts/tasks.yaml`);
+  }
+  if (v.mode === 'subagent') {
+    // subagent 變體的審查單位是 tasks.md 的 `##` 群組:規劃期就要求每個群組
+    // 收尾於 spec 完整狀態,避免中間態落在審查邊界上(見 apply 的 coherence pre-flight)
+    tasks = mustReplace(
+      tasks,
+      '      - Cross-group dependencies: state `Depends on: §N` on the line under the group header\n',
+      '      - Cross-group dependencies: state `Depends on: §N` on the line under the group header\n'
+      + '      - Review runs per group (`##` section), not per task: every group must\n'
+      + '        end in a spec-coherent state — no dangling intermediate state (e.g.,\n'
+      + '        a helper nothing in the group consumes) at the group boundary\n'
+      + '      - Keep groups reviewable: at most 3 RED/GREEN pairs per group\n',
+      'artifacts/tasks.yaml'
+    );
   }
   const applyBody = read(`apply/${v.name}.txt`);
   if (!applyBody.startsWith('    ')) {
@@ -98,13 +112,13 @@ function buildSchema(v) {
   let specs = read('artifacts/specs.yaml');
   if (v.lean) {
     // lean 沒有 design / overview,instruction 內對它們的引用必須一併拿掉
-    proposal = leanReplace(
+    proposal = mustReplace(
       proposal,
       'Keep it 1-2 pages. The "how" belongs in design.md, not here.',
       'Keep it 1-2 pages. Implementation details do not belong here.',
       'artifacts/proposal.yaml'
     );
-    specs = leanReplace(
+    specs = mustReplace(
       specs,
       '      ⚠️ Do NOT embed ASCII diagrams or visualizations in spec.md.\n'
       + '      All visuals belong in overview.md. spec.md must stay as pure requirement\n'
@@ -140,11 +154,22 @@ function buildFiles(v) {
   for (const t of (v.lean ? LEAN_TEMPLATES : SHARED_TEMPLATES)) files[`templates/${t}`] = read(`templates/${t}`);
   if (v.lean) {
     // spec.md template 的註解引用 overview.md,lean 版一併拿掉
-    files['templates/spec.md'] = leanReplace(
+    files['templates/spec.md'] = mustReplace(
       files['templates/spec.md'],
       'Do NOT embed ASCII diagrams or visualizations here; all visuals go to overview.md.',
       'Do NOT embed ASCII diagrams or visualizations here; keep it pure requirement language.',
       'templates/spec.md'
+    );
+  }
+  if (v.mode === 'subagent') {
+    // tasks.md template 的檔頂註解加上審查單位說明,與 tasks.yaml 的定向插入對齊
+    files['templates/tasks.md'] = mustReplace(
+      files['templates/tasks.md'],
+      '  Naming prefix: RED / GREEN / REFACTOR\n',
+      '  Naming prefix: RED / GREEN / REFACTOR\n'
+      + '  Review unit = the ## group: each group must end spec-coherent\n'
+      + '  (no dangling intermediate state; at most 3 RED/GREEN pairs).\n',
+      'templates/tasks.md'
     );
   }
   if (v.worktree) files['templates/environment.md'] = read('templates/environment.md');

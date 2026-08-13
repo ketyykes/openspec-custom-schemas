@@ -4,6 +4,8 @@
   Apply parses `- [ ]` checkboxes to track progress. Wrong format = no tracking.
   Every implementation task MUST be preceded by a corresponding test task.
   Naming prefix: RED / GREEN / REFACTOR
+  Review unit = the ## group: each group must end spec-coherent
+  (no dangling intermediate state; at most 3 RED/GREEN pairs).
 -->
 
 ## 1. <first group name (by capability or subsystem)>
