@@ -1,8 +1,8 @@
 <!--
 This file is a mandatory schema output; the apply phase dispatches implementers
 in parallel and uses this file for integration verification.
-**Critical**: do NOT add Spec Reviewer / Code-Quality Reviewer sections —
-the parallel variant intentionally omits two-stage review by design.
+**Critical**: do NOT add a Group Reviewer section —
+the parallel variant intentionally omits per-group review by design.
 -->
 
 # Execution Plan: <change-id>

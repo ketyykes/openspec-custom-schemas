@@ -48,7 +48,7 @@
        a final Reviewer over the whole change.
 
     ─── Forbidden ───
-    - Adding per-task or per-group two-stage review "for safety" (staged
+    - Adding per-task or per-group review "for safety" (per-group
       review belongs to tdd-subagent; it violates the design intent of
       tdd-parallel)
     - Running batches in parallel (batches must be sequential)

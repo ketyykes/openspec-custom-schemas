@@ -3,17 +3,23 @@
 name: tdd-subagent
 version: 1
 description: |
-  TDD-disciplined workflow with subagent-driven execution and two-stage review.
-  Inlines a subagent-driven-development discipline: per-task fresh subagent
-  dispatch, then per-group review at each tasks.md group boundary — spec
-  compliance (Stage 1) followed by code quality (Stage 2), with fix-loops
-  between stages. No worktree isolation.
+  TDD-disciplined workflow with subagent-driven execution and a single
+  bounded review per group. Inlines a subagent-driven-development
+  discipline: per-task fresh subagent dispatch, then one group review at
+  each tasks.md group boundary — spec compliance and code quality as two
+  sections of one report — with a bounded fix-loop (severity-tagged
+  findings; at most 3 fix rounds per group, leftovers recorded and
+  deferred). No worktree isolation.
 
   Inlined disciplines (self-contained; no external plugin required):
     - Test-first commitment via test-plan.md
     - RED -> GREEN -> REFACTOR enforcement inside each Implementer subagent
-    - Two-stage review per tasks.md group (spec compliance → code quality),
-      with fix-loops; groups must end spec-coherent
+    - One review per tasks.md group (spec compliance + code quality, two
+      sections, one reviewer) with a bounded fix-loop: findings tagged
+      high / medium / low, the first review fixes every finding, re-reviews
+      pass once no medium+ remains, at most 3 fix rounds per group,
+      leftovers recorded under design.md `## Deferred Findings` instead of
+      looping; groups must end spec-coherent
     - Final cross-group integration review after all groups complete
     - Per-role model selection recorded in execution-plan.md
     - Sized ASCII overview (incl. UI mockups, DB diagrams, sequence/migration flows)
@@ -100,6 +106,8 @@ artifacts:
       - **Risks / Trade-offs**: Format `[Risk] -> Mitigation`
       - **Migration Plan**: Deployment steps and rollback strategy (if applicable)
       - **Open Questions**: Outstanding decisions or unknowns
+      - **Deferred Findings**: leave empty at design time; apply appends
+        review findings left unresolved after the fix budget (3 rounds)
 
       Focus on architecture and approach, not line-by-line implementation.
       Reference the proposal (motivation) and specs (requirements).
@@ -264,7 +272,7 @@ artifacts:
 
   - id: execution-plan
     generates: execution-plan.md
-    description: Subagent dispatch plan — review unit, per-task contract, roles, model selection
+    description: Subagent dispatch plan — review unit, per-task contract, roles, model selection, review-findings contract (severity + fix budget)
     template: execution-plan.md
     instruction: |
       Create execution-plan.md to declare how subagents execute the tasks.
@@ -272,10 +280,12 @@ artifacts:
       Sections (in order):
       - **Mode**: must be `subagent-driven`.
       - **Review unit**: the tasks.md `##` group. Implementation is dispatched
-        per task; Stage 1 / Stage 2 run once per group at the group boundary
-        (mid-group states are legitimately intermediate and are not reviewed).
-        Record the two planning rules groups must satisfy: every group ends in
-        a spec-coherent state, and stays within 3 RED/GREEN pairs.
+        per task; one group review (spec compliance + code quality, two
+        sections of a single report by a single reviewer) runs once per group
+        at the group boundary (mid-group states are legitimately intermediate
+        and are not reviewed). Record the two planning rules groups must
+        satisfy: every group ends in a spec-coherent state, and stays within
+        3 RED/GREEN pairs.
       - **Per-task contract**: list exactly what each dispatched subagent receives.
         Subagents do not inherit the main conversation context, so this contract
         is what they get. Required entries:
@@ -288,31 +298,59 @@ artifacts:
         - Explicit "not given" list (other groups' tasks, unrelated capability specs)
         - Worktree path from environment.md (only if this schema includes an
           environment artifact — worktree variants)
-      - **Roles**: four roles, each with default_model + rationale + review checklist:
+      - **Roles**: three roles, each with default_model + rationale + review checklist:
         - **Implementer** (default_model: `haiku`); list upgrade triggers
           (`upgrade_to_sonnet_when`, `upgrade_to_opus_when`).
-        - **Spec Reviewer (Stage 1)** (default_model: `sonnet`); reviews one
-          group's combined diff: requirement coverage of the capability, scope
-          creep, RED → Scenario mapping per task, no intermediate state left
-          dangling at the group boundary. Findings name the task number(s)
-          they concern. Never reviews naming/structure/quality.
-        - **Code-Quality Reviewer (Stage 2)** (default_model: `opus`); reviews
-          the same group diff: idioms, duplication (including between the
-          group's tasks), edge cases, error handling, readability. Findings
-          name the task number(s) they concern. Never re-litigates whether
-          the spec is right.
+        - **Group Reviewer** (default_model: `opus`); reviews one group's
+          combined diff and returns one report with two sections, in order.
+          Section A — Spec compliance: requirement coverage of the capability,
+          scope creep, RED → Scenario mapping per task, no intermediate state
+          left dangling at the group boundary; never comments on
+          naming/structure/quality. Section B — Code quality: idioms,
+          duplication (including between the group's tasks), edge cases,
+          error handling, readability; never re-litigates whether the spec
+          is right. Every finding carries a severity tag, belongs to exactly
+          one section, and names the task number(s) it concerns.
         - **Final Code Reviewer** (default_model: `opus`); after all groups
           complete, reviews the full set of commits for cross-group integration:
           naming/pattern consistency across groups, duplicated logic introduced
           by separate groups, combined diff staying within the proposal's scope.
-          Never re-reviews single-group details (Stages 1-2 covered those).
+          Also receives design.md's `## Deferred Findings` list and gives a
+          verdict per entry (stands / resolved / false positive); verdicts
+          are not findings and trigger no fix round. Never re-reviews
+          single-group details beyond that (the group review covered those).
+      - **Review findings**: the contract every reviewer (group review / Final
+        review) reports against; the orchestrator pastes this section into
+        every reviewer dispatch.
+        - Severity scale — each finding carries exactly one tag:
+          - `high`: spec requirement missing or violated; wrong behavior; a
+            RED test that does not map to its Scenario; data loss, security,
+            or crash path
+          - `medium`: partial coverage; scope creep; unhandled edge case;
+            duplication that will diverge; misleading naming or error handling
+          - `low`: style, readability, cosmetic, optional improvement
+        - Pass rule (k = fix rounds already used): the first review (k = 0)
+          passes only with zero findings of any severity in either section —
+          a low-only list still triggers fix round 1. A re-review (k ≥ 1)
+          passes with zero `medium` / `high` findings in either section;
+          leftover `low` findings are recorded, never fixed on their own.
+        - Fix budget: 3 fix rounds per group, shared by both sections (Final
+          review: 3 rounds total). Round 1 fixes every finding at the
+          Implementer default model; rounds 2-3 fix `medium` / `high` (`low`
+          optional) at one tier up, then the strongest tier. A re-review
+          receives the previous findings and marks each resolved / unresolved
+          first; new findings count against the same budget.
+        - Budget exhausted with `medium` / `high` remaining → the orchestrator
+          records them under `## Deferred Findings` in design.md and proceeds;
+          there is never a 4th round.
       - **Escalation**:
-        - The same group rejected by the same reviewer N times in a row
-          (suggest N=3) → upgrade the fix Implementer's model, redispatch.
-        - Spec Reviewer's own judgment is inconsistent → escalate to a human for
-          spec clarification.
-        - Code-Quality vs. Implementer style disagreement → existing codebase style wins.
-        - Any stage BLOCKED for over 30 minutes → escalate to a human.
+        - Fix rounds are bounded by the Review findings budget above; model
+          upgrades happen per round, never as "one more try" past round 3.
+        - Section A's judgment is inconsistent (e.g., flips verdicts between
+          rounds on unchanged code) → escalate to a human for spec
+          clarification.
+        - Section B vs. Implementer style disagreement → existing codebase style wins.
+        - Any review BLOCKED for over 30 minutes → escalate to a human.
 
       Model selection principle:
       use the least powerful model that can handle each role to conserve cost
@@ -382,13 +420,59 @@ apply:
   instruction: |
     Process every unchecked checkbox in tasks.md in order.
     **The review unit is the tasks.md `##` group, not the single task:
-    implementation is dispatched per task, but Stage 1 / Stage 2 run once
-    per group, at the group boundary. Do not reorder, skip, or merge.
+    implementation is dispatched per task, but one group review (spec
+    compliance + code quality, two sections of one report) runs once per
+    group, at the group boundary. Do not reorder, skip, or merge.
     (REFACTOR-only groups run a reduced flow — see below.)**
 
     Commit behavior assumes the agent host has git permission. If commits
     cannot be made, the discipline degrades to in-memory steps; do not skip
     the test-first sequencing regardless.
+
+    ─── Review findings: severity, pass rule, fix budget ───
+    Every reviewer (group review, Final review) tags each finding with
+    exactly one severity — `high` / `medium` / `low` — using the scale in
+    execution-plan.md's "Review findings" section, and names the task
+    number(s) it concerns. Paste that scale into every reviewer dispatch.
+    - k = fix rounds already used for this group (0 at the first review);
+      both sections of the group report share the same k.
+    - PASS, first review (k = 0): zero findings of any severity in either
+      section. Even a low-only list triggers fix round 1 — low findings
+      get exactly one guaranteed fix attempt.
+    - PASS, re-review (k ≥ 1): zero medium/high findings in either
+      section. Leftover low findings are recorded (see "Recording deferred
+      findings") and never trigger another fix round; if a fix round runs
+      anyway for medium/high, hand them to the Implementer as optional
+      items.
+    - FAIL = anything else → one fix round, if budget remains.
+    - Fix budget: 3 rounds per group, spec and quality findings together
+      (Final review: 3 rounds total). One round = one fresh Implementer
+      dispatched with the findings list from both sections (round 1: every
+      finding; rounds 2-3: medium/high mandatory, low optional) and the
+      affected tasks' context, then a re-review by a fresh Group Reviewer.
+      Model per round: round 1 = Implementer default model; round 2 = one
+      tier up; round 3 = strongest tier.
+    - Re-review contract: the reviewer also receives the previous round's
+      findings and must first mark each one resolved / unresolved before
+      adding anything new. New findings are allowed but count against the
+      same budget; nothing resets the counter.
+    - Budget exhausted with medium/high findings remaining → do NOT
+      dispatch a 4th fix. Record the remaining findings as deferred, treat
+      the review as passed-with-deferred, and proceed exactly as if it had
+      passed. This is the hard stop against reviewer / fix churn.
+    - A reviewer that returns findings without severity tags, or without
+      the two-section layout, is redispatched once to fix the report (this
+      does not consume a round).
+
+    ─── Recording deferred findings ───
+    Append to design.md under `## Deferred Findings` (create the section at
+    the end of the file if absent), one line per finding:
+    `- [<severity>] §<group> / <section> / round <k>: <finding> (task X.Y)`
+    `<section>` is `spec` or `quality` for a group review, `final` for the
+    Final review (whose group is `all`); k is the round of the review that
+    ended the loop (leftover low findings at a passing re-review use that
+    re-review's k). This list is handed to the Final Code Reviewer (Step 9)
+    and reported to the user at the end of apply (Step 11).
 
     ─── Per Group: coherence pre-flight ───
     1. Identify the current group: the next `##` section in tasks.md with
@@ -399,7 +483,7 @@ apply:
        planning fix, not a code fix) before dispatching anything. A group
        should stay within 3 RED/GREEN pairs.
     2. Note the current commit hash as the group's review base; the group
-       diff reviewed in Steps 6-11 is everything committed after it.
+       diff reviewed in Steps 6-8 is everything committed after it.
 
     ─── Per Task (inside the group): dispatch Implementer ───
     3. Read execution-plan.md for the Implementer's default_model and upgrade triggers.
@@ -416,7 +500,7 @@ apply:
          → self-review → commit
     5. Implementer reports status:
        - DONE: dispatch the next task in the group; after the group's last
-         task, proceed to Step 6 (Stage 1).
+         task, proceed to Step 6 (group review).
        - DONE_WITH_CONCERNS: read concerns. If they are about correctness or scope,
          resolve before continuing. If they are observational (e.g., "this file grew
          big"), log and continue.
@@ -425,74 +509,101 @@ apply:
          reasoning gap → upgrade model; task too big → split; plan wrong → escalate.
          Never redispatch the same model under the same conditions.
        Do not check off any box yet — boxes are checked only after the
-       group passes Stage 2.
+       group review passes (or defers).
 
-    ─── Per Group: Stage 1 — Spec Compliance Review ───
+    ─── Per Group: review (spec compliance + code quality) ───
     6. When every task in the group reports DONE, dispatch a fresh subagent
-       as Spec Reviewer (model per execution-plan.md) over the group's
+       as Group Reviewer (model per execution-plan.md) over the group's
        combined diff (all commits since the review base). It receives the
-       group's full task texts, the matching test-plan entries, and the
-       relevant spec / design sections.
+       group's full task texts, the matching test-plan entries, the
+       relevant spec / design sections, the severity scale, and (on a
+       re-review) the previous round's findings.
        Required first action for the reviewer: restate the section headings of
        the spec / test-plan excerpts it received; if they do not match the group
        under review, report NEEDS_CONTEXT instead of reviewing (the orchestrator
        reassembles the context and redispatches).
-    7. Sole task: compare the group's code against spec and test-plan; answer
-       "does the code match the spec?"
-       - Look at: requirement coverage of the capability, scope creep,
-         RED → Scenario mapping for each task, and whether every intermediate
-         state inside the group got consumed by the group's end.
-       - Do NOT look at: naming, structure, quality (that is Stage 2's job).
-       - Each finding must name the task number(s) it concerns.
-    8. ❌ Stage 1 fails → one fresh Implementer fixes the group's findings
-       (dispatched with the findings list and the affected tasks' context)
-       → back to Step 6.
-       ✅ Stage 1 passes → proceed to Step 9.
-
-    ─── Per Group: Stage 2 — Code Quality Review ───
-    9. Dispatch a fresh subagent as Code-Quality Reviewer (model per
-       execution-plan.md) over the same group diff.
-       Same required first action as Stage 1: restate the received excerpt
-       headings; on mismatch with the group, report NEEDS_CONTEXT — reassemble
-       the context and redispatch.
-    10. Sole task: review implementation quality.
-        - Look at: naming, duplication (including between this group's tasks),
-          edge cases, error handling, readability, consistency with existing style.
-        - Do NOT re-litigate whether the spec is right (Stage 1 already covered that).
-        - Each finding must name the task number(s) it concerns.
-    11. ❌ Stage 2 fails → one fresh Implementer fixes → back to Step 9.
-        ✅ Stage 2 passes → check off every box in the group; proceed to the
-        next group (back to Step 1).
+    7. Sole task: one report with two sections, in this order, every
+       finding tagged with severity and the task number(s) it concerns.
+       - Section A — Spec compliance: answer "does the code match the
+         spec?" Look at requirement coverage of the capability, scope
+         creep, RED → Scenario mapping for each task, and whether every
+         intermediate state inside the group got consumed by the group's
+         end. Do NOT comment on naming, structure, or quality here.
+       - Section B — Code quality: naming, duplication (including between
+         this group's tasks), edge cases, error handling, readability,
+         consistency with existing style. Do NOT re-litigate whether the
+         spec is right here.
+       Keep the sections separate; a finding belongs to exactly one.
+    8. Apply the pass rule (k = fix rounds already used for this group):
+       ✅ PASS (k = 0: no findings at all; k ≥ 1: no medium/high in either
+          section) → record any leftover low findings (round k); check off
+          every box in the group; proceed to the next group (back to Step 1).
+       ❌ FAIL, k < 3 → one fresh Implementer (model for round k+1) fixes
+          the findings of both sections (round 1: all of them; later
+          rounds: medium/high, low optional) → back to Step 6 as a
+          re-review.
+       ⏭ FAIL, k = 3 → record the remaining medium/high findings as
+          deferred (round 3); check off every box in the group; proceed to
+          the next group. No 4th fix.
 
     ─── REFACTOR tasks ───
     Dispatch a fresh Implementer per REFACTOR task like any other task in
     its group, with this contract instead: refactor only, no behavior
     change, full test suite stays green, commit `refactor: <description>`.
-    At the group boundary its commits are covered by Stage 2; Stage 1
+    At the group boundary its commits are covered by Section B; Section A
     findings must not target them (no spec-visible behavior may change).
-    A group made up solely of REFACTOR tasks skips Stage 1 and runs
-    Stage 2 only.
+    For a group made up solely of REFACTOR tasks the reviewer fills
+    Section B only and states "no spec-visible change" in Section A.
 
     ─── After all groups complete ───
-    12. Dispatch a fresh subagent as Final Code Reviewer (model and checklist
-        per execution-plan.md) over the full set of commits to confirm
-        cross-group integration is consistent.
-    13. ❌ Final review fails → Implementer (fresh subagent) fixes → back to
-        Step 12.
-        ✅ All green → apply done.
+    9. Dispatch a fresh subagent as Final Code Reviewer (model and checklist
+       per execution-plan.md) over the full set of commits to confirm
+       cross-group integration is consistent. It also receives the severity
+       scale and the current `## Deferred Findings` list from design.md,
+       and must give a verdict per deferred entry — stands / resolved /
+       false positive. Verdicts are not Final findings and never trigger a
+       fix round; they only annotate the list.
+    10. Apply the pass rule (k = Final fix rounds already used):
+        ✅ PASS (k = 0: no findings at all; k ≥ 1: no medium/high) → record
+           any leftover low findings (group `all`, section `final`, round
+           k); proceed to Step 11.
+        ❌ FAIL, k < 3 → one fresh Implementer (model for round k+1) fixes
+           the findings (round 1: all of them; later rounds: medium/high,
+           low optional) → back to Step 9 as a re-review.
+        ⏭ FAIL, k = 3 → record the remaining medium/high findings as
+           deferred (group `all`, section `final`, round 3); proceed to
+           Step 11.
+        Then append the reviewer's verdict to each `## Deferred Findings`
+        entry (`→ stands` / `→ resolved` / `→ false positive`).
+    11. Report back to the user: groups completed, and the full
+        `## Deferred Findings` list (or "none"). Any entry marked `high`
+        and `→ stands` must be called out at the top of the report. Then
+        apply is done.
 
     ─── Forbidden ───
     - Dispatching multiple Implementer subagents in parallel (they will conflict)
     - Reviewing mid-group "for safety" (mid-group states are legitimately
       intermediate; per-task review re-creates the false-positive churn the
       group boundary exists to remove)
-    - Skipping Stage 1 or Stage 2 at a group boundary (REFACTOR-only groups
-      run Stage 2 only)
-    - Starting Stage 2 before Stage 1 failures are resolved
-    - Checking off any box before its group passes Stage 2
-    - Moving to the next group without running the fix-loop on reviewer findings
+    - Skipping the group review at a group boundary (REFACTOR-only groups
+      still get Section B)
+    - Splitting the group review back into two separate reviewer dispatches
+      (one Group Reviewer, one report, two sections, one shared budget)
+    - Letting Section A comment on naming/structure, or Section B re-litigate
+      the spec (each section stays in its lane)
+    - Checking off any box before its group review passes (or defers)
+    - Moving to the next group with a medium/high finding that is neither
+      fixed nor recorded under `## Deferred Findings` (fix or record —
+      never neither)
+    - Running a 4th fix round on any group or on the Final review (the
+      budget is 3; defer instead)
+    - Passing a first review (k = 0) that still lists any finding, low included
+    - Failing a re-review (k ≥ 1), or dispatching a fix round after round 1,
+      over low findings only
+    - Accepting reviewer findings that carry no severity tag or no section
     - Letting the Implementer's self-review replace group review (both are required)
-    - Waving through "close enough" spec deviations
+    - Waving through "close enough" spec deviations while fix budget remains
+      (deferring after round 3 is a recorded decision, not a wave-through)
     - Redispatching a BLOCKED task with the same model under the same conditions
     - Letting any subagent read plan files directly (always paste the full task text)
     - Dispatching into a group that failed the coherence pre-flight

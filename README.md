@@ -23,8 +23,8 @@ DB 關聯圖、時序圖與資料遷移流程）。
 |-------------|----------|:--------:|
 | `tdd-sequential`           | 單 agent 順序 | ❌ |
 | `tdd-sequential-worktree`  | 單 agent 順序 | ✅ |
-| `tdd-subagent`             | 每 task 派 subagent + 每 group 兩階段審查 | ❌ |
-| `tdd-subagent-worktree`    | 每 task 派 subagent + 每 group 兩階段審查 | ✅ |
+| `tdd-subagent`             | 每 task 派 subagent + 每 group 一次合併審查（spec + 品質，修復上限 3 輪） | ❌ |
+| `tdd-subagent-worktree`    | 每 task 派 subagent + 每 group 一次合併審查（spec + 品質，修復上限 3 輪） | ✅ |
 | `tdd-parallel`             | 多 subagent 並行批次 | ❌ |
 | `tdd-parallel-worktree`    | 多 subagent 並行批次 | ✅ |
 | `tdd-sequential-lite`          | 單 agent 順序（精簡：無 design / overview） | ❌ |
@@ -69,9 +69,9 @@ build/          ← 產生物；OpenSpec 直接可用，安裝時從這裡複製
 
 | 內容 | 處理 |
 |------|------|
-| 6 份共用 template | `src/templates/` 各 1 份（lean 變體只輸出其中 4 份；subagent 變體的 tasks.md 由 build 定向加註審查單位） |
+| 6 份共用 template | `src/templates/` 各 1 份（lean 變體只輸出其中 4 份；subagent 變體的 tasks.md 由 build 定向加註審查單位、design.md 定向預留 `## Deferred Findings` 區段） |
 | execution-plan template（subagent / parallel 兩版） | 各 1 份；輸出時一律命名 `execution-plan.md` |
-| proposal / specs / design / test-plan / overview 的 artifact 區塊 | `src/artifacts/` 各 1 份（完整變體共用；lean 變體由 build 定向替換拿掉 design / overview 引用） |
+| proposal / specs / design / test-plan / overview 的 artifact 區塊 | `src/artifacts/` 各 1 份（完整變體共用；lean 變體由 build 定向替換拿掉 design / overview 引用；subagent 變體的 design 由 build 定向加入 Deferred Findings 段落說明） |
 | tasks 區塊 | 共用主體 1 份；`requires` 由 build 依模式補上 `execution-plan`；subagent 模式由 build 定向插入群組審查規則 |
 | environment 區塊 + template | worktree 專用，各 1 份 |
 | apply 的 requires / tracks 標頭 | 由 build 依變體組成（`applyPrefix()`：除 overview 外全列；worktree 加 environment） |
@@ -103,9 +103,9 @@ build/          ← 產生物；OpenSpec 直接可用，安裝時從這裡複製
 
 - ✅ `tdd-sequential` — 純 TDD 順序
 - ✅ `tdd-sequential-worktree` — + worktree 隔離（含 environment.md）
-- ✅ `tdd-subagent` — + subagent 派發 + 每 group 兩階段審查（含 execution-plan.md）
-- ✅ `tdd-subagent-worktree` — subagent + worktree（含 environment.md + execution-plan.md）
-- ✅ `tdd-parallel` — + 批次並行派發（含 execution-plan.md，無兩階段審查）
+- ✅ `tdd-subagent` — + subagent 派發 + 每 group 一次合併審查（spec + 品質），修復迴圈有界（含 execution-plan.md）
+- ✅ `tdd-subagent-worktree` — subagent + worktree，修復迴圈有界（含 environment.md + execution-plan.md）
+- ✅ `tdd-parallel` — + 批次並行派發（含 execution-plan.md，無 per-group 審查）
 - ✅ `tdd-parallel-worktree` — parallel + worktree（含 environment.md + execution-plan.md）
 - ✅ `tdd-sequential-lite` — 精簡版：無 design / overview
 - ✅ `tdd-sequential-lite-worktree` — 精簡版 + worktree 隔離（含 environment.md）
@@ -215,6 +215,12 @@ overview 是純人類讀物，不 gate apply；其餘 artifact 都是 apply.inst
 5. **worktree 是 schema-level 決策，非 artifact opt-out**：避免「畫了 environment.md 但說不用 worktree」的歧義。
 6. **Schema instructions 英文，輸出語言由 config.yaml 控制**：見「安裝到專案」段。
 7. **來源去重、產生物自足**：維護改 `src/`，OpenSpec 吃 `build/`；兩者由 `build.mjs` 保持同步。
+8. **subagent 審查迴圈有界**：每個 group 只派一個 Group Reviewer，交一份兩段式報告
+   （Section A spec 合規／Section B 程式品質），每條 finding 必標 `high` / `medium` / `low`；
+   第一次審查只要有任何 finding（含 low）就修一輪，之後的重審只要沒有 medium 以上就通過；
+   兩段共用每 group 最多 3 輪的修復預算（第 2、3 輪逐級升級 Implementer 模型），預算用完
+   仍未解的 medium 以上發現記錄到 design.md 的 `## Deferred Findings` 後照常推進，最終審查
+   與收尾報告會再帶出這份清單。
 
 ## 已知限制 / 環境前提
 

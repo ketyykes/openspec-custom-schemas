@@ -4,9 +4,9 @@
     template: execution-plan.md
     instruction: |
       Create execution-plan.md to declare how Implementer subagents are
-      dispatched in parallel batches. **Do NOT add Spec Reviewer or
-      Code-Quality Reviewer sections — the parallel variant intentionally
-      omits two-stage review by design.**
+      dispatched in parallel batches. **Do NOT add a Group Reviewer
+      section — the parallel variant intentionally omits per-group
+      review by design.**
 
       Sections (in order):
       - **Mode**: must be `parallel-batches`.

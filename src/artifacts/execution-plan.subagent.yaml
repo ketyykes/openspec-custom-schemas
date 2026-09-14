@@ -1,6 +1,6 @@
   - id: execution-plan
     generates: execution-plan.md
-    description: Subagent dispatch plan — review unit, per-task contract, roles, model selection
+    description: Subagent dispatch plan — review unit, per-task contract, roles, model selection, review-findings contract (severity + fix budget)
     template: execution-plan.md
     instruction: |
       Create execution-plan.md to declare how subagents execute the tasks.
@@ -8,10 +8,12 @@
       Sections (in order):
       - **Mode**: must be `subagent-driven`.
       - **Review unit**: the tasks.md `##` group. Implementation is dispatched
-        per task; Stage 1 / Stage 2 run once per group at the group boundary
-        (mid-group states are legitimately intermediate and are not reviewed).
-        Record the two planning rules groups must satisfy: every group ends in
-        a spec-coherent state, and stays within 3 RED/GREEN pairs.
+        per task; one group review (spec compliance + code quality, two
+        sections of a single report by a single reviewer) runs once per group
+        at the group boundary (mid-group states are legitimately intermediate
+        and are not reviewed). Record the two planning rules groups must
+        satisfy: every group ends in a spec-coherent state, and stays within
+        3 RED/GREEN pairs.
       - **Per-task contract**: list exactly what each dispatched subagent receives.
         Subagents do not inherit the main conversation context, so this contract
         is what they get. Required entries:
@@ -24,31 +26,59 @@
         - Explicit "not given" list (other groups' tasks, unrelated capability specs)
         - Worktree path from environment.md (only if this schema includes an
           environment artifact — worktree variants)
-      - **Roles**: four roles, each with default_model + rationale + review checklist:
+      - **Roles**: three roles, each with default_model + rationale + review checklist:
         - **Implementer** (default_model: `haiku`); list upgrade triggers
           (`upgrade_to_sonnet_when`, `upgrade_to_opus_when`).
-        - **Spec Reviewer (Stage 1)** (default_model: `sonnet`); reviews one
-          group's combined diff: requirement coverage of the capability, scope
-          creep, RED → Scenario mapping per task, no intermediate state left
-          dangling at the group boundary. Findings name the task number(s)
-          they concern. Never reviews naming/structure/quality.
-        - **Code-Quality Reviewer (Stage 2)** (default_model: `opus`); reviews
-          the same group diff: idioms, duplication (including between the
-          group's tasks), edge cases, error handling, readability. Findings
-          name the task number(s) they concern. Never re-litigates whether
-          the spec is right.
+        - **Group Reviewer** (default_model: `opus`); reviews one group's
+          combined diff and returns one report with two sections, in order.
+          Section A — Spec compliance: requirement coverage of the capability,
+          scope creep, RED → Scenario mapping per task, no intermediate state
+          left dangling at the group boundary; never comments on
+          naming/structure/quality. Section B — Code quality: idioms,
+          duplication (including between the group's tasks), edge cases,
+          error handling, readability; never re-litigates whether the spec
+          is right. Every finding carries a severity tag, belongs to exactly
+          one section, and names the task number(s) it concerns.
         - **Final Code Reviewer** (default_model: `opus`); after all groups
           complete, reviews the full set of commits for cross-group integration:
           naming/pattern consistency across groups, duplicated logic introduced
           by separate groups, combined diff staying within the proposal's scope.
-          Never re-reviews single-group details (Stages 1-2 covered those).
+          Also receives design.md's `## Deferred Findings` list and gives a
+          verdict per entry (stands / resolved / false positive); verdicts
+          are not findings and trigger no fix round. Never re-reviews
+          single-group details beyond that (the group review covered those).
+      - **Review findings**: the contract every reviewer (group review / Final
+        review) reports against; the orchestrator pastes this section into
+        every reviewer dispatch.
+        - Severity scale — each finding carries exactly one tag:
+          - `high`: spec requirement missing or violated; wrong behavior; a
+            RED test that does not map to its Scenario; data loss, security,
+            or crash path
+          - `medium`: partial coverage; scope creep; unhandled edge case;
+            duplication that will diverge; misleading naming or error handling
+          - `low`: style, readability, cosmetic, optional improvement
+        - Pass rule (k = fix rounds already used): the first review (k = 0)
+          passes only with zero findings of any severity in either section —
+          a low-only list still triggers fix round 1. A re-review (k ≥ 1)
+          passes with zero `medium` / `high` findings in either section;
+          leftover `low` findings are recorded, never fixed on their own.
+        - Fix budget: 3 fix rounds per group, shared by both sections (Final
+          review: 3 rounds total). Round 1 fixes every finding at the
+          Implementer default model; rounds 2-3 fix `medium` / `high` (`low`
+          optional) at one tier up, then the strongest tier. A re-review
+          receives the previous findings and marks each resolved / unresolved
+          first; new findings count against the same budget.
+        - Budget exhausted with `medium` / `high` remaining → the orchestrator
+          records them under `## Deferred Findings` in design.md and proceeds;
+          there is never a 4th round.
       - **Escalation**:
-        - The same group rejected by the same reviewer N times in a row
-          (suggest N=3) → upgrade the fix Implementer's model, redispatch.
-        - Spec Reviewer's own judgment is inconsistent → escalate to a human for
-          spec clarification.
-        - Code-Quality vs. Implementer style disagreement → existing codebase style wins.
-        - Any stage BLOCKED for over 30 minutes → escalate to a human.
+        - Fix rounds are bounded by the Review findings budget above; model
+          upgrades happen per round, never as "one more try" past round 3.
+        - Section A's judgment is inconsistent (e.g., flips verdicts between
+          rounds on unchanged code) → escalate to a human for spec
+          clarification.
+        - Section B vs. Implementer style disagreement → existing codebase style wins.
+        - Any review BLOCKED for over 30 minutes → escalate to a human.
 
       Model selection principle:
       use the least powerful model that can handle each role to conserve cost

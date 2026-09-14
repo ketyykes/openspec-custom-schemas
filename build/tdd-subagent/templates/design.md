@@ -42,3 +42,9 @@
 ## Open Questions
 
 <!-- Outstanding decisions or unknowns. Apply phase appends blockers here. -->
+
+## Deferred Findings
+
+<!-- Leave empty at design time. Apply phase appends review findings left
+     unresolved after the fix budget (3 rounds per group), one per line:
+     - [<severity>] §<group> / <section> / round <k>: <finding> (task X.Y) -->

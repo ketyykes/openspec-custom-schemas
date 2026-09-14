@@ -110,6 +110,19 @@ function buildSchema(v) {
   }
   let proposal = read('artifacts/proposal.yaml');
   let specs = read('artifacts/specs.yaml');
+  let design = read('artifacts/design.yaml');
+  if (v.mode === 'subagent') {
+    // subagent 變體的審查 fix-loop 有界(3 輪):預算用完仍剩 medium/high 的發現
+    // 由 apply 記錄到 design.md 的 `## Deferred Findings`,設計期先預留該區段
+    design = mustReplace(
+      design,
+      '      - **Open Questions**: Outstanding decisions or unknowns\n',
+      '      - **Open Questions**: Outstanding decisions or unknowns\n'
+      + '      - **Deferred Findings**: leave empty at design time; apply appends\n'
+      + '        review findings left unresolved after the fix budget (3 rounds)\n',
+      'artifacts/design.yaml'
+    );
+  }
   if (v.lean) {
     // lean 沒有 design / overview,instruction 內對它們的引用必須一併拿掉
     proposal = mustReplace(
@@ -133,7 +146,7 @@ function buildSchema(v) {
   s += head;
   s += proposal;
   s += specs;
-  if (!v.lean) s += read('artifacts/design.yaml');
+  if (!v.lean) s += design;
   s += read('artifacts/test-plan.yaml');
   if (!v.lean) s += read('artifacts/overview.yaml');
   if (nonSeq) s += read(`artifacts/execution-plan.${v.mode}.yaml`); // 非 sequential 才有
@@ -162,6 +175,23 @@ function buildFiles(v) {
     );
   }
   if (v.mode === 'subagent') {
+    // design.md template 預留 Deferred Findings 區段,與 design.yaml 的定向插入對齊
+    files['templates/design.md'] = mustReplace(
+      files['templates/design.md'],
+      '## Open Questions\n'
+      + '\n'
+      + '<!-- Outstanding decisions or unknowns. Apply phase appends blockers here. -->\n',
+      '## Open Questions\n'
+      + '\n'
+      + '<!-- Outstanding decisions or unknowns. Apply phase appends blockers here. -->\n'
+      + '\n'
+      + '## Deferred Findings\n'
+      + '\n'
+      + '<!-- Leave empty at design time. Apply phase appends review findings left\n'
+      + '     unresolved after the fix budget (3 rounds per group), one per line:\n'
+      + '     - [<severity>] §<group> / <section> / round <k>: <finding> (task X.Y) -->\n',
+      'templates/design.md'
+    );
     // tasks.md template 的檔頂註解加上審查單位說明,與 tasks.yaml 的定向插入對齊
     files['templates/tasks.md'] = mustReplace(
       files['templates/tasks.md'],

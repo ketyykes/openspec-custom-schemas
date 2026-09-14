@@ -1,18 +1,24 @@
 name: tdd-subagent-worktree
 version: 1
 description: |
-  TDD-disciplined workflow with subagent-driven execution, two-stage review,
-  and isolated git worktree. Inlines subagent-driven-development and
-  git-worktree isolation disciplines: per-task fresh subagent dispatch, then
-  per-group review at each tasks.md group boundary — spec compliance
-  (Stage 1) followed by code quality (Stage 2), all inside a dedicated
-  worktree branch.
+  TDD-disciplined workflow with subagent-driven execution, a single bounded
+  review per group, and isolated git worktree. Inlines
+  subagent-driven-development and git-worktree isolation disciplines:
+  per-task fresh subagent dispatch, then one group review at each tasks.md
+  group boundary — spec compliance and code quality as two sections of one
+  report — with a bounded fix-loop (severity-tagged findings; at most 3 fix
+  rounds per group, leftovers recorded and deferred), all inside a
+  dedicated worktree branch.
 
   Inlined disciplines (self-contained; no external plugin required):
     - Test-first commitment via test-plan.md
     - RED -> GREEN -> REFACTOR enforcement inside each Implementer subagent
-    - Two-stage review per tasks.md group (spec compliance → code quality),
-      with fix-loops; groups must end spec-coherent
+    - One review per tasks.md group (spec compliance + code quality, two
+      sections, one reviewer) with a bounded fix-loop: findings tagged
+      high / medium / low, the first review fixes every finding, re-reviews
+      pass once no medium+ remains, at most 3 fix rounds per group,
+      leftovers recorded under design.md `## Deferred Findings` instead of
+      looping; groups must end spec-coherent
     - Final cross-group integration review after all groups complete
     - Per-role model selection recorded in execution-plan.md
     - Isolated worktree per change; environment.md records branch, setup,
