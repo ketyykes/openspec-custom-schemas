@@ -1,11 +1,27 @@
   - id: overview
     generates: overview.md
-    description: ASCII 人類版摘要；依 change 規模與類型動態決定區塊
+    description: ASCII 人類版摘要（可選；建立前先詢問使用者）；依 change 規模與類型動態決定區塊
     template: overview.md
     instruction: |
       建立 overview.md，給人類一頁讀完此 change。
       **所有 ASCII 圖必須包在 ``` 三引號程式碼區塊內。**
       Apply 階段不必讀此檔；validator 也不解析它。
+
+      ─── 步驟 0：先問要不要產生（本 artifact 為可選）───
+      overview 不在 apply.requires 內，不 gate apply；是否產生由使用者決定。
+      先完成步驟 1、2 的判定，再用 **AskUserQuestion**（沒有此工具的 host
+      改用純文字提問）問一次，單選、兩個選項：
+      - 「產生」：依判定結果產生完整 overview.md（繼續步驟 3、4）
+      - 「略過」：不建立 overview.md，也不要寫任何佔位檔
+      問題要帶上判定摘要，讓使用者有依據，例如：
+        「這次要產生 overview.md 嗎？判定：medium；條件式區塊：UI Mockups、
+         Data Model。」
+      規則：
+      - 同一次工作階段（一次 /opsx:ff 或 /opsx:continue）只問一次；使用者選
+        「略過」後，後續迴圈再看到 overview 為 ready 也直接跳過，不再問。
+      - 略過後 `openspec status` 仍會列出 overview 未完成，這是預期行為；
+        /opsx:apply 不受影響，/opsx:archive 會提示一次確認即可。
+      - 之後想補產生時，再跑 `openspec instructions overview` 走完整流程。
 
       ─── 步驟 1：判定 change 規模（取最大命中）───
       - **small**：影響 ≤1 capability、預估 tasks ≤8、無新依賴、無架構變更

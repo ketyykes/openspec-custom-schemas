@@ -13,9 +13,10 @@
 這個資料夾收錄 8 個自製的 OpenSpec custom schemas。它們把四項核心開發紀律
 （test-driven-development、subagent-driven-development、parallel-agent dispatch、
 git-worktree 隔離）**內嵌**進 OpenSpec 的 artifact + apply.instruction，讓任何
-環境不需額外外掛也能保有同樣紀律。另外除 lite 變體外，每個 schema 都產出
-一份 `overview.md` 作為人類友善的 ASCII 視覺版（依條件自動繪製 UI mockups、
-DB 關聯圖、時序圖與資料遷移流程）。
+環境不需額外外掛也能保有同樣紀律。另外除 lite 變體外，每個 schema 都提供
+一份**可選**的 `overview.md` 作為人類友善的 ASCII 視覺版（依條件自動繪製
+UI mockups、DB 關聯圖、時序圖與資料遷移流程）；建立前會先用 AskUserQuestion
+問一次這個 change 要不要產生。
 
 ## 家族成員
 
@@ -141,7 +142,7 @@ lite 變體（`tdd-sequential-lite[-worktree]`）沒有 design 與 overview：
 | `specs/**/*.md`| WHAT — 需求 + Scenario（純文字）| 人 + apply + validator |
 | `design.md`    | HOW — 技術決策 | 人 + apply |
 | `test-plan.md` | RED 階段承諾書（測什麼、預期、為何先寫）| apply 反覆讀 |
-| `overview.md`  | ASCII 視覺版（UI mockups / DB 關聯圖 / 時序圖等條件式圖表）| 純人類 |
+| `overview.md`  | 可選；ASCII 視覺版（UI mockups / DB 關聯圖 / 時序圖等條件式圖表），建立前先詢問 | 純人類 |
 | `tasks.md`     | RED / GREEN / REFACTOR checkbox 清單 | apply 追蹤進度 |
 
 注意：`tasks.requires` 同時列出 `specs`、`test-plan`、`design`，與原版 `spec-driven`
@@ -212,6 +213,8 @@ overview 是純人類讀物，不 gate apply；其餘 artifact 都是 apply.inst
 4. **overview 依規模與類型動態組合**：small / medium / large 命中不同區塊；另有四個
    條件式區塊不分規模、命中就加 — 前端需求加 UI Mockups、動到 DB 結構加 Data Model
    （Before/After 關聯圖）、含資料遷移加 Data Migration、含跨元件流程加 Sequence Diagram。
+   overview 本身是可選的：instruction 的步驟 0 會先做完判定，再用 AskUserQuestion
+   帶著判定摘要問一次「產生／略過」，同一次 /opsx:ff 只問一次。
 5. **worktree 是 schema-level 決策，非 artifact opt-out**：避免「畫了 environment.md 但說不用 worktree」的歧義。
 6. **Schema instructions 英文，輸出語言由 config.yaml 控制**：見「安裝到專案」段。
 7. **來源去重、產生物自足**：維護改 `src/`，OpenSpec 吃 `build/`；兩者由 `build.mjs` 保持同步。
@@ -231,9 +234,11 @@ overview 是純人類讀物，不 gate apply；其餘 artifact 都是 apply.inst
 - **模型名稱以 Claude tier 為例**：execution-plan 的 haiku / sonnet / opus
   是範例名稱；instruction 與 template 已註明在沒有這些模型的 host 上，
   對應到等級相近的 fast / balanced / strongest 模型即可。
-- **overview 為 required artifact**：列在 `artifacts:` 內即 OpenSpec resolver
-  會把它視為必須產出的節點。small 規模也至少需輸出 Scope + What Changes 兩區塊。
-  （lite 變體不含 overview，自然不受此限。）
+- **overview 是可選的，但 OpenSpec 沒有 optional artifact 的概念**：resolver 只看
+  檔案是否存在。使用者選「略過」後不會建檔，因此 `openspec status` 會持續列出
+  overview 未完成、`/opsx:archive` 會提示一次確認；`/opsx:apply` 不受影響（overview
+  不在 `apply.requires`）。若有產生，small 規模也至少需輸出 Scope + What Changes
+  兩區塊。（lite 變體不含 overview，自然不受此限。）
 - **與原版 schema 不可混用**：同一 change 不要中途切換 `spec-driven` 與
   `tdd-*` schema —— 兩者 artifact 集合不同，會造成 `openspec status` 誤判。
 - **`build/` 是產生物**：不要直接手改；要改請改 `src/` 再 `node src/build.mjs`。

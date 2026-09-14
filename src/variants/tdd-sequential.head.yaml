@@ -8,7 +8,8 @@ description: |
   Inlined disciplines (self-contained; no external plugin required):
     - Test-first commitment via test-plan.md
     - RED -> GREEN -> REFACTOR enforcement in apply.instruction
-    - Sized ASCII overview (incl. UI mockups, DB diagrams, sequence/migration flows)
+    - Optional sized ASCII overview, asked per change before creation
+      (incl. UI mockups, DB diagrams, sequence/migration flows)
 
   Output language is controlled by openspec/config.yaml `context:`
   (see OpenSpec docs/multi-language.md), not by this schema.

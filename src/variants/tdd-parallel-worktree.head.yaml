@@ -16,7 +16,8 @@ description: |
     - Isolated worktree per change; environment.md records branch, setup,
       baseline, teardown; all parallel subagents share the same worktree
     - Final reviewer pass over all batches when apply completes
-    - Sized ASCII overview (incl. UI mockups, DB diagrams, sequence/migration flows)
+    - Optional sized ASCII overview, asked per change before creation
+      (incl. UI mockups, DB diagrams, sequence/migration flows)
 
   Output language is controlled by openspec/config.yaml `context:`
   (see OpenSpec docs/multi-language.md), not by this schema.
